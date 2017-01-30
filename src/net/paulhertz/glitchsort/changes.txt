@@ -1,0 +1,14 @@
+October 20, 2014
+-- fixed path to degrade file. In MacOS Mavericks, Eclipse Luna release, the default path for saving application files 
+   was not the expected "bin" directory but the Applications folder where Eclipse IDE was located. Setting Preferences 
+   did not clear up the problem, so I fixed it by creating a "projPath" variable. Not a problem in Processing.
+-- fixed unsnap issue where images came up blank after resizing in munge method. Typical scenario for
+   error: load an image, load a snap buffer image with different dimensions, fft the image, munge, 
+   then display snap buffer. I added an alpha channel to the resized image in munge method.
+-- rewrote and optimized color channel shifting code to handle arbitrary shift values. Nice array rotate algorithm.
+   Added necessary controls to Munge control panel.
+-- refactored references to "LowFreqCut" and LowFrequencyCut to set "link" attribute. Linked FFT boost and cut values
+   are a little inaccurate, probably due to rounding errors, but I'm going to live with it for now.
+
+November 7, 2014
+-- created new file i/o commands and naming conventions

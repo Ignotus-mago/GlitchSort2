@@ -3864,7 +3864,7 @@ public class GlitchSort extends PApplet {
     // ffreq1, ffreq2, ffreq3 will also be used as f0, f1, f2 
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
-    float ffreq1 = 1.1484375f * 4.0f;    // 1.1484375 = 44100 divided by (800 * 48)
+    float ffreq1 = 1.1484375f * 0.75f;    // 1.1484375 = 44100 divided by (800 * 48)
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
@@ -4136,42 +4136,30 @@ public class GlitchSort extends PApplet {
     public int[] fftRGBFormantGlitch(int[] samples, Formant formant) {
     	// println(">>>>-------->>> fftRGBFormantGlitch <<<--------<<<<<");
     	float fac = formantScale;
-    	// RED
     	// convert R channel to an array of floats
-    	ChannelNames chan = ChannelNames.R;
-    	float[] buf = pullChannel(samples, chan);
+    	float[] buf1 = pullChannel(samples, ChannelNames.R);
     	// do a forward transform on the array of floats
-    	statFFT.forward(buf);
+    	statFFT.forward(buf1);
     	// scale the first frequency
     	this.fftScaleFreq(formant.freq1, fac * famp1);
     	// inverse the transform
-    	statFFT.inverse(buf);
-    	// write samples back to buffer
-    	pushChannel(samples, buf, chan);
-    	// GREEN
+    	statFFT.inverse(buf1);
     	// convert G channel to an array of floats
-    	chan = ChannelNames.G;
-    	buf = pullChannel(samples, chan);
+    	float[] buf2 = pullChannel(samples, ChannelNames.G);
     	// do a forward transform on the array of floats
-    	statFFT.forward(buf);
+    	statFFT.forward(buf2);
     	// scale the second frequency
     	this.fftScaleFreq(formant.freq2, fac * famp2);
     	// inverse the transform
-    	statFFT.inverse(buf);
-    	// write samples back to buffer
-    	pushChannel(samples, buf, chan);
-    	// BLUE
+    	statFFT.inverse(buf2);
     	// convert B channel to an array of floats
-    	chan = ChannelNames.B;
-    	buf = pullChannel(samples, chan);
+    	float[] buf3 = pullChannel(samples, ChannelNames.B);
     	// do a forward transform on the array of floats
-    	statFFT.forward(buf);
+    	statFFT.forward(buf3);
     	// scale the second frequency
     	this.fftScaleFreq(formant.freq3, fac * famp3);
     	// inverse the transform
-    	statFFT.inverse(buf);
-    	// write samples back to buffer
-    	pushChannel(samples, buf, chan);
+    	statFFT.inverse(buf3);
     	// conditionally scale by the bias
     	if (fDCBias != 0) {
     		println("-------- fDCBias = "+ fDCBias/1000.0f);
@@ -4179,6 +4167,12 @@ public class GlitchSort extends PApplet {
     			this.fftScaleBin(0, 1 + fDCBias/1000.0f);
     		}
     	}
+     	// write RED samples back to buffer
+    	pushChannel(samples, buf1, ChannelNames.R);
+    	// write GREEN samples back to buffer
+    	pushChannel(samples, buf2, ChannelNames.G);
+	   	// write BLUE samples back to buffer
+    	pushChannel(samples, buf3, ChannelNames.B);
     	// return the modified samples
     	return samples;
     }

@@ -538,7 +538,7 @@ public class GlitchSort extends PApplet {
 		s4.setBroadcast(true);
 		// redraw the text label for the block size, on our control panel
 		Textlabel l11 = (Textlabel) cpm.getControl().getController("blockSizeLabel");
-		l11.setText("FFT Block Size = "+ statFFTBlockWidth);
+		l11.setText("Block Size = "+ statFFTBlockWidth);
 		// we process square blocks of pixels as if they were an audio signal
 		statBufferSize = statFFTBlockWidth * statFFTBlockWidth;
 		statFFT = new FFT(statBufferSize, sampleRate);
@@ -3864,16 +3864,23 @@ public class GlitchSort extends PApplet {
     // ffreq1, ffreq2, ffreq3 will also be used as f0, f1, f2 
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
-    float ffreq1 = 1.1484375f * 0.75f;    // 1.1484375 = 44100 divided by (800 * 48)
+    // float ffreq1 = 1.1484375f * 0.75f;    // 1.1484375 = 44100 divided by (800 * 48)
+    // float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
+    // float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 4/1200.0); // four cents;
-    float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
-    float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
-    float famp1 = 3.0f;
-    float famp2 = 3.0f;
-    float famp3 = 3.0f;
+    // some interesting frequencies: 18837, 1033, 7920, 8890, 6286
+//    float ffreq1 = 1033;    //
+//    float ffreq2 = 6286;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
+//    float ffreq3 = 18837;
+    float ffreq1 = 220.5f * 3/1920.0f;    //
+    float ffreq2 = 220.5f * 4/1920.0f;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
+    float ffreq3 = 220.5f * 5/1920.0f;
+    float famp1 = 2.88f;
+    float famp2 = 2.88f;
+    float famp3 = 2.88f;
     // formant scaling factor
     float formantScale = 1.0f;
     // DC Bias
@@ -3881,7 +3888,7 @@ public class GlitchSort extends PApplet {
     
     Formant theFormant = new Formant(400, 600, 800, "default", "default");
     // not used
-    boolean isRunFormantRGB = true;
+    boolean isRunFormantRGB = false;
     
     public void setFfreq1(float ffreq1) {
 			this.ffreq1 = ffreq1;

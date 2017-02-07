@@ -775,17 +775,18 @@ public class ControlPanelManager extends PApplet {
 		Textlabel l11 = control.addTextlabel("blockSizeLabel", "Statistical FFT Block Size = "+ app.statFFTBlockWidth, 84, yPos + 2);
 		l11.setGroup(fftSettings);
 		
-		CheckBox ch7 = createCheckBox("hilbert", 84 + 72 + 36, yPos + 2, 1, (panelWidth - 8)/4, fftSettings, foreColor, activeColor, labelColor);		
+		CheckBox ch7 = createCheckBox("hilbert", 84 + 72 + 16, yPos + 2, 1, (panelWidth - 8)/4, fftSettings, foreColor, activeColor, labelColor);		
 		ch7.addItem("isHilbert", 1);
 		ch7.getItem(0).setCaptionLabel("Hilbert");
-		/*
+		/**/
 		// RGB check box, sets app.isRunFormantRGB
-		hzOffset += labelW + 8;
-		CheckBox ch9 = createCheckBox("FormantRGB", hzOffset, yPos + 2, 1, 0, fftSettings, foreColor, activeColor, labelColor);
+		// hzOffset += labelW + 8;
+		CheckBox ch9 = createCheckBox("FormantRGB", 84 + 72 + 72, yPos + 2, 1, 0, fftSettings, foreColor, activeColor, labelColor);
 		ch9.setColorForeground(app.color(233, 233, 0));
 		ch9.addItem("setIsRunFormantRGB", 1);
+		ch9.getItem(0).setValue(app.isRunFormantRGB);
 		ch9.getItem(0).setCaptionLabel("RGB");
-		*/
+		
 		
 		// formant section
 		// TODO formant popup menu

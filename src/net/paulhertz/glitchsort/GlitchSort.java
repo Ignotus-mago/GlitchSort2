@@ -92,6 +92,7 @@ import ddf.minim.*;
 import controlP5.*;
 import controlP5.Controller;
 import net.paulhertz.aifile.*;
+import net.paulhertz.util.Permutator;
 // static import statement (Java 1.5) allows us to use unqualified constant names
 import static net.paulhertz.glitchsort.GlitchConstants.*;
 
@@ -326,7 +327,8 @@ public class GlitchSort extends PApplet {
 	// TODO implement separate FFTBuffer for eqch operation
 	// right now we use statBufferSize for all fft buffer sizes
 	int eqBufferSize;
-	float sampleRate = 44100.0f;
+	// float sampleRate = 44100.0f;
+	float sampleRate = 262144.0f; // (1024^2)/4
 	public int eqH = 100;
 	public float eqMax = 1;
 	public float eqMin = -1;
@@ -425,7 +427,7 @@ public class GlitchSort extends PApplet {
 	}
 
 	public void setup() {
-		println("Screen: "+ displayWidth +", "+ displayHeight);
+		println("Screen: "+ displayWidth +", "+ displayHeight);		
 		// println("Display: "+ displayWidth +", "+ displayHeight);
 		size(640, 480);
 		// we generally don't want to smooth. We want nearest neighbor scaling.
@@ -671,6 +673,8 @@ public class GlitchSort extends PApplet {
 				rect(x, y, w, w);
 			}
 		}
+		// testing
+		// if (this.isShiftKeyDown()) println("Shift key down");
 	}
 	
 	/**
@@ -680,6 +684,10 @@ public class GlitchSort extends PApplet {
 	public boolean isCapsLockDown() {
 		boolean isDown = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
 		return isDown;
+	}
+	
+	public boolean isShiftKeyDown() {
+		return (isShiftKeyDown);
 	}
 
 	/**
@@ -874,7 +882,15 @@ public class GlitchSort extends PApplet {
 		}
 		fileBaseName = oldFileBaseName;
 	}
-	
+
+	public void shiftTest() {
+		// String oldFileBaseName = fileBaseName;
+		for (int k = 0; k < 1024; k++) {
+			shiftScanLeft(1024);
+			exec("s");
+		}
+		// fileBaseName = oldFileBaseName;
+	}
 	
 	public void zzBlox() {
 		String cmd = "lt";
@@ -1017,6 +1033,7 @@ public class GlitchSort extends PApplet {
 	}
 
 	
+	boolean isShiftKeyDown = false;
 	/* (non-Javadoc)
 	 * @see processing.core.PApplet#mousePressed()
 	 * if the ControlP5 control panel is hidden, permit image panning
@@ -1024,20 +1041,53 @@ public class GlitchSort extends PApplet {
 	 * or any time the mouse is not within an active tab
 	 * I have not handled the cases where tabs are collapsed.
 	 */
+//	public void mousePressed(MouseEvent event) {
+//		if (event.isShiftDown()) isShiftKeyDown = true;
+//		else isShiftKeyDown = false;
+//		if (cpm.panelIsInactive()) isDragImage = true;
+//		else {
+//			isDragImage = !(cpm.controlPanelRect().contains(mouseX, mouseY));
+//		}
+//	}
+
 	public void mousePressed() {
 		if (cpm.panelIsInactive()) isDragImage = true;
 		else {
 			isDragImage = !(cpm.controlPanelRect().contains(mouseX, mouseY));
 		}
 	}
+
+	
+// commented out to allow image translation in mouseDragged(): this method does not refresh mouse vars	
+//	public void mouseReleased(MouseEvent event) {
+//		if (event.isShiftDown()) isShiftKeyDown = true;
+//		else isShiftKeyDown = false;
+//	}
 	
 	// handle dragging to permit large images to be panned
 	// shift-drag will always work, shift key is not needed if control panel is hidden 
+//	public void mouseDragged(MouseEvent event) {
+//		if (event.isShiftDown()) isShiftKeyDown = true;
+//		else isShiftKeyDown = false;
+//		println("mouseX", mouseX, "pmouseX", pmouseX, "mouseY", mouseY, "pmouseY", pmouseY);
+//		translateImage(-mouseX + pmouseX, -mouseY + pmouseY);
+//		// output: mouseX 0 pmouseX 0 mouseY 0 pmouseY 0
+//	}
+	
+	// TODO the translation code is misbehaving, jumping on mousedowns
+	// mouseX and other variables apparently don't get set in the mouseDragged(MouseEvent event) method
 	public void mouseDragged() {
 		if (isDragImage) {
+			// println("mouseX", mouseX, "pmouseX", pmouseX, "mouseY", mouseY, "pmouseY", pmouseY);
 			translateImage(-mouseX + pmouseX, -mouseY + pmouseY);
-		}
-	}
+		}		
+	} 
+	
+// commented out to allow image translation in mouseDragged(): this method does not refresh mouse vars	
+//	public void mouseMoved(MouseEvent event) {
+//		if (event.isShiftDown()) isShiftKeyDown = true;
+//		else isShiftKeyDown = false;
+//	}
 	
 	/* (non-Javadoc)
 	 * handles key presses intended as commands
@@ -1263,10 +1313,12 @@ public class GlitchSort extends PApplet {
 			audifyOff();                             // turn off audify
 		}
 		else if (ch == '9') {
-			denoise();                              // denoise
+			if (this.isCapsLockDown()) mean();
+			else denoise();                              // denoise
 		}
 		else if (ch == '(') {
-			for (int i = 0; i < 16; i++) denoise(); // mucho denoise
+			if (this.isCapsLockDown()) for (int i = 0; i < 16; i++) mean(); // mucho mean
+			else for (int i = 0; i < 16; i++) denoise(); // mucho denoise
 		}
 		else if (ch == '<') {
 			shiftLeft();                            // shift selected color channel left
@@ -1325,9 +1377,12 @@ public class GlitchSort extends PApplet {
 		}
 		else if (ch == '\"') {
 			initPanelSettings(true);
+			// shiftTest();
 		}
 		else if (ch == '\'') {
-			scaleTest();
+			// scaleTest();
+			// TODO shift negative values
+			doShift();
 		}
 	}
 	
@@ -1883,6 +1938,28 @@ public class GlitchSort extends PApplet {
 	
 
 	/**
+	 * parameterless method that ControlP5 button in FFT tab calls
+	 * desaturates color using a standard formula, better results than setting saturation to 0
+	 */
+	public void desaturate() {
+		println("-------- Desaturate --------");
+		int[] comp = new int[3];
+		backup();
+		img.loadPixels();
+		for (int i = 0; i < img.pixels.length; i++) {
+			int px = img.pixels[i];
+			comp[0] = (px >> 16) & 0xFF;  // Faster way of getting red(argb)
+			comp[1] = (px >> 8) & 0xFF;   // Faster way of getting green(argb)
+			comp[2] = px & 0xFF;          // Faster way of getting blue(argb)
+			int gray = (int) (comp[0] * 0.59f + comp[1] * 0.3f + comp[2] * 0.11f);
+			img.pixels[i] = color(gray);
+		}
+		img.updatePixels();
+		fitPixels(isFitToScreen, false);
+	}
+     
+
+	/**
 	 * degrades the image by saving it as a low quality JPEG and loading the saved image
 	 */
 	public void degrade() {
@@ -1931,8 +2008,8 @@ public class GlitchSort extends PApplet {
 	 */
 	public void denoise() {
 		int boxW = 3;
-        int medianPos = 4;
-        backup();
+		int medianPos = 4;
+		backup();
 		PImage imgCopy = copyImagePixels(img);
 		int w = img.width;
 		int h = img.height;
@@ -1941,100 +2018,224 @@ public class GlitchSort extends PApplet {
 		for (int v = 1; v < h - 1; v++) {
 			for (int u = 1; u < w - 1; u++) {
 				int k = 0;
-                for (int j = -1; j <= 1; j++) {
-                    for (int i = -1; i <= 1; i++) {
-                        pix[k] = imgCopy.get(u + i, v + j);
-                        k++;
-                    }
-                }
-                Arrays.sort(pix);
-                img.set(u, v, pix[medianPos]);
+				for (int j = -1; j <= 1; j++) {
+					for (int i = -1; i <= 1; i++) {
+						pix[k] = imgCopy.get(u + i, v + j);
+						k++;
+					}
+				}
+				{
+					Arrays.sort(pix);
+					img.set(u, v, pix[medianPos]);
+				}
 			}
 		}
 		// prepare array for edges
 		pix = new int[(boxW - 1) * boxW];
-		// left edge
-		for (int v = 1; v < h - 1; v++) {
-			int u = 0;
-			int k = 0;
-			for (int j = -1; j <= 1; j++) {
-				for (int i = 0; i <= 1; i++) {
-					pix[k] = imgCopy.get(u + i, v + j);
-					k++;
+				// left edge
+				for (int v = 1; v < h - 1; v++) {
+					int u = 0;
+					int k = 0;
+					for (int j = -1; j <= 1; j++) {
+						for (int i = 0; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
 				}
-			}
-			Arrays.sort(pix);
-			img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
-		}
-		// right edge
-		for (int v = 1; v < h - 1; v++) {
-			int u = w - 1;
-			int k = 0;
-			for (int j = -1; j <= 1; j++) {
-				for (int i = 0; i <= 1; i++) {
-					pix[k] = imgCopy.get(u - i, v + j);
-					k++;
+				// right edge
+				for (int v = 1; v < h - 1; v++) {
+					int u = w - 1;
+					int k = 0;
+					for (int j = -1; j <= 1; j++) {
+						for (int i = 0; i <= 1; i++) {
+							pix[k] = imgCopy.get(u - i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
 				}
-			}
-			Arrays.sort(pix);
-			img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
-		}
-		// top edge
-		for (int u = 1; u < w - 1; u++) {
-			int v = 0;
-			int k = 0;
-			for (int j = 0; j <= 1; j++) {
-				for (int i = -1; i <= 1; i++) {
-					pix[k] = imgCopy.get(u + i, v + j);
-					k++;
+				// top edge
+				for (int u = 1; u < w - 1; u++) {
+					int v = 0;
+					int k = 0;
+					for (int j = 0; j <= 1; j++) {
+						for (int i = -1; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
 				}
-			}
-			Arrays.sort(pix);
-			img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
-		}
-		// bottom edge 
-		for (int u = 1; u < w - 1; u++) {
-			int v = h - 1;
-			int k = 0;
-			for (int j = 0; j <= 1; j++) {
-				for (int i = -1; i <= 1; i++) {
-					pix[k] = imgCopy.get(u + i, v - j);
-					k++;
+				// bottom edge 
+				for (int u = 1; u < w - 1; u++) {
+					int v = h - 1;
+					int k = 0;
+					for (int j = 0; j <= 1; j++) {
+						for (int i = -1; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v - j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
 				}
-			}
-			Arrays.sort(pix);
-			img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
-		}
-		// prepare array for corners
-		pix = new int[(boxW - 1) * (boxW - 1)];
-		// do the corners
-		pix[0] = imgCopy.get(0, 0);
-		pix[1] = imgCopy.get(0, 1);
-		pix[2] = imgCopy.get(1, 0);
-		pix[3] = imgCopy.get(1, 1);
-		Arrays.sort(pix);
-		img.set(0, 0, GlitchSort.meanColor(pix[1], pix[2]));
-		pix[0] = imgCopy.get(w - 1, 0);
-		pix[1] = imgCopy.get(w - 1, 1);
-		pix[2] = imgCopy.get(w - 2, 0);
-		pix[3] = imgCopy.get(w - 2, 1);
-		Arrays.sort(pix);
-		img.set(w - 1, 0, GlitchSort.meanColor(pix[1], pix[2]));
-		pix[0] = imgCopy.get(0, h - 1);
-		pix[1] = imgCopy.get(0, h - 2);
-		pix[2] = imgCopy.get(1, h - 1);
-		pix[3] = imgCopy.get(1, h - 2);
-		Arrays.sort(pix);
-		img.set(0, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
-		pix[0] = imgCopy.get(w - 1, h - 1);
-		pix[1] = imgCopy.get(w - 1, h - 2);
-		pix[2] = imgCopy.get(w - 2, h - 1);
-		pix[3] = imgCopy.get(w - 2, h - 1);
-		Arrays.sort(pix);
-		img.set(w - 1, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
-		img.updatePixels();
-		fitPixels(isFitToScreen, false);
+				// prepare array for corners
+				pix = new int[(boxW - 1) * (boxW - 1)];
+				// do the corners
+				pix[0] = imgCopy.get(0, 0);
+				pix[1] = imgCopy.get(0, 1);
+				pix[2] = imgCopy.get(1, 0);
+				pix[3] = imgCopy.get(1, 1);
+				Arrays.sort(pix);
+				img.set(0, 0, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(w - 1, 0);
+				pix[1] = imgCopy.get(w - 1, 1);
+				pix[2] = imgCopy.get(w - 2, 0);
+				pix[3] = imgCopy.get(w - 2, 1);
+				Arrays.sort(pix);
+				img.set(w - 1, 0, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(0, h - 1);
+				pix[1] = imgCopy.get(0, h - 2);
+				pix[2] = imgCopy.get(1, h - 1);
+				pix[3] = imgCopy.get(1, h - 2);
+				Arrays.sort(pix);
+				img.set(0, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(w - 1, h - 1);
+				pix[1] = imgCopy.get(w - 1, h - 2);
+				pix[2] = imgCopy.get(w - 2, h - 1);
+				pix[3] = imgCopy.get(w - 2, h - 1);
+				Arrays.sort(pix);
+				img.set(w - 1, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
+				img.updatePixels();
+				fitPixels(isFitToScreen, false);
 	}
+	
+	public void mean() {
+		int boxW = 3;
+		int medianPos = 4;
+		backup();
+		PImage imgCopy = copyImagePixels(img);
+		int w = img.width;
+		int h = img.height;
+		int[] pix = new int[boxW * boxW];
+		float len = pix.length;
+		img.loadPixels();
+		int r, g, b = 0;
+		int farb;
+		for (int v = 1; v < h - 1; v++) {
+			for (int u = 1; u < w - 1; u++) {
+				// int k = 0;
+				r = g = b = 0;
+				for (int j = -1; j <= 1; j++) {
+					for (int i = -1; i <= 1; i++) {
+						farb = imgCopy.get(u + i, v + j);;
+						r += (farb >> 16) & 0xFF;
+						g += (farb >> 8) & 0xFF;
+						b += farb & 0xFF;
+						// k++;
+					}
+				}
+				{
+					img.set(u, v, composeColor((int)(r/len), (int)(g/len), (int)(b/len), 255));
+				}
+			}
+		}
+		// prepare array for edges, where we use a median value instead of the mean
+		pix = new int[(boxW - 1) * boxW];
+				// left edge
+				for (int v = 1; v < h - 1; v++) {
+					int u = 0;
+					int k = 0;
+					for (int j = -1; j <= 1; j++) {
+						for (int i = 0; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
+				}
+				// right edge
+				for (int v = 1; v < h - 1; v++) {
+					int u = w - 1;
+					int k = 0;
+					for (int j = -1; j <= 1; j++) {
+						for (int i = 0; i <= 1; i++) {
+							pix[k] = imgCopy.get(u - i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
+				}
+				// top edge
+				for (int u = 1; u < w - 1; u++) {
+					int v = 0;
+					int k = 0;
+					for (int j = 0; j <= 1; j++) {
+						for (int i = -1; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v + j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
+				}
+				// bottom edge 
+				for (int u = 1; u < w - 1; u++) {
+					int v = h - 1;
+					int k = 0;
+					for (int j = 0; j <= 1; j++) {
+						for (int i = -1; i <= 1; i++) {
+							pix[k] = imgCopy.get(u + i, v - j);
+							k++;
+						}
+					}
+					Arrays.sort(pix);
+					img.set(u, v, GlitchSort.meanColor(pix[2], pix[3]));
+				}
+				// prepare array for corners
+				pix = new int[(boxW - 1) * (boxW - 1)];
+				// do the corners
+				pix[0] = imgCopy.get(0, 0);
+				pix[1] = imgCopy.get(0, 1);
+				pix[2] = imgCopy.get(1, 0);
+				pix[3] = imgCopy.get(1, 1);
+				Arrays.sort(pix);
+				img.set(0, 0, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(w - 1, 0);
+				pix[1] = imgCopy.get(w - 1, 1);
+				pix[2] = imgCopy.get(w - 2, 0);
+				pix[3] = imgCopy.get(w - 2, 1);
+				Arrays.sort(pix);
+				img.set(w - 1, 0, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(0, h - 1);
+				pix[1] = imgCopy.get(0, h - 2);
+				pix[2] = imgCopy.get(1, h - 1);
+				pix[3] = imgCopy.get(1, h - 2);
+				Arrays.sort(pix);
+				img.set(0, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
+				pix[0] = imgCopy.get(w - 1, h - 1);
+				pix[1] = imgCopy.get(w - 1, h - 2);
+				pix[2] = imgCopy.get(w - 2, h - 1);
+				pix[3] = imgCopy.get(w - 2, h - 1);
+				Arrays.sort(pix);
+				img.set(w - 1, h - 1, GlitchSort.meanColor(pix[1], pix[2]));
+				img.updatePixels();
+				fitPixels(isFitToScreen, false);
+	}
+
+	
+  /********************************************/
+  /*                                          */
+  /*          >>> ARRAY ROTATION <<<          */
+  /*                                          */
+  /********************************************/
 	
 	
 	/**
@@ -2149,6 +2350,72 @@ public class GlitchSort extends PApplet {
 			r--;
 		}
 	}
+	
+	public void doShift() {
+  	boolean shiftDown = cpm.getControl().isShiftDown();
+		if (this.isCapsLockDown()) {
+			if (shiftDown) shiftScanLeft(-this.shift * 16);
+			else shiftScanLeft(-this.shift);
+		}
+		else {
+			if (shiftDown) shiftScanLeft(this.shift * 16);
+			else shiftScanLeft(this.shift);
+		}
+	}
+	
+	/**
+	 * Shifts pixel arrays from zigzag or Hilbert scans left by an arbitrary number of pixels.
+	 * @param shift   number of pixels to shift 
+	 */
+	public void shiftScanLeft(int shift) {
+		int order = (int) Math.sqrt(statBufferSize);
+		this.statFFTBlockWidth = order;
+		PixelScannerINF zz;
+		if (isHilbertScan) {
+			int depth = (int) (Math.log(order)/Math.log(2));
+			zz = new HilbertScanner(depth);
+			// println("Hilbert depth = "+ depth);
+		}
+		else {
+			zz = new Zigzagger(order);
+			// println("Zigzag order = "+ order);
+		}
+		int dw = (img.width / order);
+		int dh = (img.height / order);
+		int w = dw * order;
+		int h = dh * order;
+		int ow = (img.width - w) / 2;
+		int oh = (img.height - h) / 2;
+		backup();
+		img.loadPixels();
+		for (int y = 0; y < dh; y++) {
+			for (int x = 0; x < dw; x++) {
+				int mx = x * order + ow;
+				int my = y * order + oh;
+				int[] pix = zz.pluck(img.pixels, img.width, img.height, mx, my);
+				// do stuff to pix here
+	  		if (shift < 0) {
+	  			shift = pix.length - ((-shift) % pix.length);
+	  		}
+	  		else {
+	  			shift = shift % pix.length;			
+	  		}
+				if (isHilbertScan) {
+					rotateLeft(pix, shift);    			
+					//rotateLeft(pix, pix.length/16);
+				}
+				else {
+					rotateLeft(pix, shift);    			
+				}
+				// end stuff
+				zz.plant(img.pixels, pix, img.width, img.height, mx, my);
+			}
+		}
+		img.updatePixels();
+		fitPixels(isFitToScreen, false);
+	}
+	
+	
 	
 	/**
 	 * TODO fit full image into frame, with no hidden pixels. Works when fitToScreen is true, fails in some 
@@ -3861,6 +4128,7 @@ public class GlitchSort extends PApplet {
     /*                                          */
     /********************************************/
     
+    float oneCent = (float) Math.pow(2, 1/1200.0);
     // ffreq1, ffreq2, ffreq3 will also be used as f0, f1, f2 
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
@@ -3875,14 +4143,24 @@ public class GlitchSort extends PApplet {
 //    float ffreq1 = 1033;    //
 //    float ffreq2 = 6286;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
 //    float ffreq3 = 18837;
-    float ffreq1 = 220.5f * 3/1920.0f;    //
-    float ffreq2 = 220.5f * 4/1920.0f;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
-    float ffreq3 = 220.5f * 5/1920.0f;
-    float famp1 = 2.88f;
-    float famp2 = 2.88f;
-    float famp3 = 2.88f;
+//    float ffreq1 = 55.125f * 100/1920.0f;    //
+//    float ffreq2 = 55.125f * 100 * (5/4.0f)/1920.0f;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
+//    float ffreq1 = 7367.1875f;   // 23 * 44100 / 128
+//    float ffreq2 = 3330.0f;
+//    float ffreq3 = 1033.0f;
+    float ffreq1 = 0.9870f;   
+    float fmult1 = 1;
+    float fmult2 = 1;
+    float ffreq2 = 1.5970f;
+    float ffreq3 = 2.5840f;
+    float famp1 = 3.0f;
+    float famp2 = 3.0f;
+    float famp3 = 3.0f;
+    boolean isMuteF1 = false;
+    boolean isMuteF2 = false;
+    boolean isMuteF3 = false;
     // formant scaling factor
-    float formantScale = 1.0f;
+    float formantScale = 4.0f;
     // DC Bias
     float fDCBias = 0.0f;
     
@@ -3893,28 +4171,54 @@ public class GlitchSort extends PApplet {
     public void setFfreq1(float ffreq1) {
 			this.ffreq1 = ffreq1;
 			theFormant.freq1 = ffreq1;
-			cpm.getControl().getController("setFfreq1");
-			cpm.getControl().getController("setFfreq1").setBroadcast(false);
-			cpm.getControl().getController("setFfreq1").setValue(ffreq1);
-			cpm.getControl().getController("setFfreq1").setBroadcast(true);
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq1");
+			boolean shiftDown = cpm.getControl().isShiftDown();
+//			boolean controlDown = cpm.getControl().isControlDown();
+//			boolean optionDown = cpm.getControl().isAltDown();
+//			boolean metaDown = cpm.getControl().isMetaDown();
+//			println("control", controlDown, "option", optionDown, "meta", metaDown);
+			if (nb.getMultiplier() < 10.0f && shiftDown) nb.setMultiplier(10.0f);
+			if (nb.getMultiplier() == 10.0f && !shiftDown) {
+				nb.setMultiplier(ffreq1 < 100 ? 0.01f : 0.1f);
+				nb.setDecimalPrecision(ffreq1 < 100 ? 2 : 1);
+			}
+//			if (controlDown) {
+//				println("---- control key is down -----");
+//				nb.setMultiplier(0.01f);
+//			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq1);
+			nb.setBroadcast(true);
 		}
 
 		public void setFfreq2(float ffreq2) {
 			this.ffreq2 = ffreq2;
 			theFormant.freq2 = ffreq2;
-			cpm.getControl().getController("setFfreq2");
-			cpm.getControl().getController("setFfreq2").setBroadcast(false);
-			cpm.getControl().getController("setFfreq2").setValue(ffreq2);
-			cpm.getControl().getController("setFfreq2").setBroadcast(true);
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq2");
+			boolean shiftDown = cpm.getControl().isShiftDown();
+			if (nb.getMultiplier() < 10.0f && shiftDown) nb.setMultiplier(10.0f);
+			if (nb.getMultiplier() == 10.0f && !shiftDown) {
+				nb.setMultiplier(ffreq2 < 100 ? 0.01f : 0.1f);
+				nb.setDecimalPrecision(ffreq2 < 100 ? 2 : 1);
+			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq2);
+			nb.setBroadcast(true);
 		}
 
 		public void setFfreq3(float ffreq3) {
 			this.ffreq3 = ffreq3;
 			theFormant.freq3 = ffreq3;
-			cpm.getControl().getController("setFfreq3");
-			cpm.getControl().getController("setFfreq3").setBroadcast(false);
-			cpm.getControl().getController("setFfreq3").setValue(ffreq3);
-			cpm.getControl().getController("setFfreq3").setBroadcast(true);
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq3");
+			boolean shiftDown = cpm.getControl().isShiftDown();
+			if (nb.getMultiplier() < 10.0f && shiftDown) nb.setMultiplier(10.0f);
+			if (nb.getMultiplier() == 10.0f && !shiftDown) {
+				nb.setMultiplier(ffreq3 < 100 ? 0.01f : 0.1f);
+				nb.setDecimalPrecision(ffreq3 < 100 ? 2 : 1);
+			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq3);
+			nb.setBroadcast(true);
 		}
 
 		public void setFamp1(float famp1) {
@@ -3957,7 +4261,23 @@ public class GlitchSort extends PApplet {
 				cpm.getControl().getController("setFDCBias").setValue(val);
 				cpm.getControl().getController("setFDCBias").setBroadcast(true);
 			}
-		
+	   
+	   public void setMuteF1() {
+	  	 isMuteF1 = !isMuteF1;
+	  	 println("isMuteF1 = "+ isMuteF1);
+	   }
+
+	   public void setMuteF2() {
+	  	 isMuteF2 = !isMuteF2;
+	  	 println("isMuteF2 = "+ isMuteF2);
+	   }
+
+	   public void setMuteF3() {
+	  	 isMuteF3 = !isMuteF3;
+	  	 println("isMuteF3 = "+ isMuteF3);
+	   }
+
+	   // formant base frequency and ratios
 		
 		public void loadFormant(Formant f) {
 			setFfreq1(f.freq1);
@@ -3982,7 +4302,6 @@ public class GlitchSort extends PApplet {
      *   
      */
     public class Formant {
-    	// TODO try using floats for frequencies
      	public float freq1;
      	public float freq2;
      	public float freq3;
@@ -4013,6 +4332,11 @@ public class GlitchSort extends PApplet {
     	formantList[7] = new Formant(640, 1190, 2390, "L", "but");
     	formantList[8] = new Formant(490, 1350, 1690, "r", "bird");
     	formantList[9] = new Formant(570, 840, 2410, "aw", "bought");
+     	formantList[10] = new Formant(490, 910, 2450, "o", "coat");
+     	loadFormantOctave();
+    }
+    
+    public void loadFormantOctave() {
      	// formantList[10] = new Formant(6785, 10946, 15127, "xx", "--synth--");
     	// formantList[10] = new Formant(10569, 10946, 11179, "xx", "--synth--");
   		/* 		  
@@ -4044,12 +4368,12 @@ public class GlitchSort extends PApplet {
      	formantList[22] = new Formant(144, 233, 377, "x11", "--synth--");
      	*/
     	// chromatic scale
-     	formantList[10] = new Formant(490, 910, 2450, "o", "coat");
-    	float fac = (float) Math.pow(2, 1/12.0); // one sixteenth-tone
+    	float fac = (float) Math.pow(2, 1/12.0); // one semitone
     	// println("------------->>>>>> semitone fac = "+ fac);
     	float f0 = ffreq1;
     	float f1 = ffreq2;
     	float f2 = ffreq3;
+    	println("-------------formant scale base:", f0, f1, f2);
     	int count = 0;
     	for (int i = 11; i < formantList.length; i++) {
     		formantList[i] = new Formant(f0, f1, f2, "x"+count, "--scale--");
@@ -4058,8 +4382,7 @@ public class GlitchSort extends PApplet {
     		f2 *= fac;
     		count++;
     	}
-
-   	/*
+    	/*
     	// harmonic series
     	int x0 = 1, x1 = 2, x2 = 3, x3 = 4, x4 = 5, x5 = 6, x6 = 7, x7 = 8, x8 = 9, x9 = 10;
     	float fac = 0.05572809000085f;
@@ -4076,18 +4399,49 @@ public class GlitchSort extends PApplet {
      	formantList[17] = new Formant(f0 * x7, f1 * x7, f2 * x7, "x7", "--synth--");
      	formantList[18] = new Formant(f0 * x8, f1 * x8, f2 * x8, "x8", "--synth--");
      	formantList[19] = new Formant(f0 * x9, f1 * x9, f2 * x9, "x9", "--synth--");
-     	*/
+     	*/    	
+    }
+    
+    public int[] threePerm = {0, 1, 2};
+    public float[] freqs = null;
+    public void permuteFormantValues() {
+    	boolean shiftDown = cpm.getControl().isShiftDown();
+    	if (shiftDown || null == freqs) {
+    		freqs = new float[3];
+    		freqs[0] = ffreq1;
+    		freqs[1] = ffreq2;
+    		freqs[2] = ffreq3;
+    	}
+    	boolean hasNextPerm = Permutator.nextPerm(threePerm);
+    	if (!hasNextPerm) {
+    		for (int i = 0; i < threePerm.length; i++) {
+    			threePerm[i] = i;
+    		}
+    	}
+    	// println("-------- permutation:", threePerm[0], threePerm[1], threePerm[2]);
+    	setFfreq1(freqs[threePerm[0]]);
+    	setFfreq2(freqs[threePerm[1]]);
+    	setFfreq3(freqs[threePerm[2]]);
+     }
+    
+    public void halfFormantValues() {
+    	boolean shiftDown = cpm.getControl().isShiftDown();
+    	float fac = 0.5f;
+    	if (shiftDown) fac = 2.0f;
+    	setFfreq1(ffreq1 * fac);
+    	setFfreq2(ffreq2 * fac);
+    	setFfreq3(ffreq3 * fac);
     }
     
     /**
-     * Performs a zigzag scan, centered in the image, and passes blocks 
+     * Performs a zigzag or Hilbert scan, centered in the image, and passes blocks 
      * to an FFT transform that uses a user-supplied formant.
      * 
      */
     public void formantFFT(Formant formant) {
     	int order = (int) Math.sqrt(statBufferSize);
     	this.statFFTBlockWidth = order;
-    	PixelScanner zz;
+    	PixelScannerINF zz;
     	if (isHilbertScan) {
     		int depth = (int) (Math.log(order)/Math.log(2));
     		zz = new HilbertScanner(depth);
@@ -4143,43 +4497,52 @@ public class GlitchSort extends PApplet {
     public int[] fftRGBFormantGlitch(int[] samples, Formant formant) {
     	// println(">>>>-------->>> fftRGBFormantGlitch <<<--------<<<<<");
     	float fac = formantScale;
-    	// convert R channel to an array of floats
-    	float[] buf1 = pullChannel(samples, ChannelNames.R);
-    	// do a forward transform on the array of floats
-    	statFFT.forward(buf1);
-    	// scale the first frequency
-    	this.fftScaleFreq(formant.freq1, fac * famp1);
-    	// inverse the transform
-    	statFFT.inverse(buf1);
-    	// convert G channel to an array of floats
-    	float[] buf2 = pullChannel(samples, ChannelNames.G);
-    	// do a forward transform on the array of floats
-    	statFFT.forward(buf2);
-    	// scale the second frequency
-    	this.fftScaleFreq(formant.freq2, fac * famp2);
-    	// inverse the transform
-    	statFFT.inverse(buf2);
-    	// convert B channel to an array of floats
-    	float[] buf3 = pullChannel(samples, ChannelNames.B);
-    	// do a forward transform on the array of floats
-    	statFFT.forward(buf3);
-    	// scale the second frequency
-    	this.fftScaleFreq(formant.freq3, fac * famp3);
-    	// inverse the transform
-    	statFFT.inverse(buf3);
+    	float[] buf1 = null;
+    	float[] buf2 = null;
+    	float[] buf3 = null;
+    	if (!isMuteF1) {
+    		// convert R channel to an array of floats
+    		buf1 = pullChannel(samples, ChannelNames.R);
+    		// do a forward transform on the array of floats
+    		statFFT.forward(buf1);
+    		// scale the first frequency
+    		this.fftScaleFreq(formant.freq1, fac * famp1);
+    		// inverse the transform
+    		statFFT.inverse(buf1);
+    	}
+    	if (!isMuteF2) {
+    		// convert G channel to an array of floats
+    		buf2 = pullChannel(samples, ChannelNames.G);
+    		// do a forward transform on the array of floats
+    		statFFT.forward(buf2);
+    		// scale the second frequency
+    		this.fftScaleFreq(formant.freq2, fac * famp2);
+    		// inverse the transform
+    		statFFT.inverse(buf2);
+    	}
+    	if (!isMuteF3) {
+    		// convert B channel to an array of floats
+    		buf3 = pullChannel(samples, ChannelNames.B);
+    		// do a forward transform on the array of floats
+    		statFFT.forward(buf3);
+    		// scale the second frequency
+    		this.fftScaleFreq(formant.freq3, fac * famp3);
+    		// inverse the transform
+    		statFFT.inverse(buf3);
+    	}
     	// conditionally scale by the bias
     	if (fDCBias != 0) {
-    		println("-------- fDCBias = "+ fDCBias/1000.0f);
+    		// println("-------- fDCBias = "+ fDCBias/1000.0f);
     		for (int j = 0; j < 16; j++) {
     			this.fftScaleBin(0, 1 + fDCBias/1000.0f);
     		}
     	}
-     	// write RED samples back to buffer
-    	pushChannel(samples, buf1, ChannelNames.R);
+    	// write RED samples back to buffer
+    	if (!isMuteF1 && null != buf1) pushChannel(samples, buf1, ChannelNames.R);
     	// write GREEN samples back to buffer
-    	pushChannel(samples, buf2, ChannelNames.G);
-	   	// write BLUE samples back to buffer
-    	pushChannel(samples, buf3, ChannelNames.B);
+    	if (!isMuteF2 && null != buf2) pushChannel(samples, buf2, ChannelNames.G);
+    	// write BLUE samples back to buffer
+    	if (!isMuteF3 && null != buf3) pushChannel(samples, buf3, ChannelNames.B);
     	// return the modified samples
     	return samples;
     }
@@ -4203,11 +4566,11 @@ public class GlitchSort extends PApplet {
     	// float fac = formantScale > 0 ? (map(formantScale, 0, 4, 1, famp1)) : 1 + formantScale;
     	// fac = map(formantScale, -1, 4, 0, famp1);
     	float fac = formantScale;
-    	this.fftScaleFreq(formant.freq1, fac * famp1);
-    	this.fftScaleFreq(formant.freq2, fac * famp2);
-    	this.fftScaleFreq(formant.freq3, fac * famp3);
+    	if (!isMuteF1) this.fftScaleFreq(formant.freq1, fac * famp1);
+    	if (!isMuteF2) this.fftScaleFreq(formant.freq2, fac * famp2);
+    	if (!isMuteF3) this.fftScaleFreq(formant.freq3, fac * famp3);
     	if (fDCBias != 0) {
-    		println("-------- fDCBias = "+ fDCBias/1000.0f);
+    		// println("-------- fDCBias = "+ fDCBias/1000.0f);
     		for (int j = 0; j < 16; j++) {
     			this.fftScaleBin(0, 1 + fDCBias/1000.0f);
     		}
@@ -4218,6 +4581,8 @@ public class GlitchSort extends PApplet {
     	return samples;
     }
 
+    
+    
 	
   /*             >>> END FORMANT SECTION <<<             */
     
@@ -4428,7 +4793,7 @@ public class GlitchSort extends PApplet {
 	public void eqFFT() {
 		int order = (int) Math.sqrt(statBufferSize);
 		this.statFFTBlockWidth = order;
-		PixelScanner zz;
+		PixelScannerINF zz;
 		if (isHilbertScan) {
 			int depth = (int) (Math.log(order)/Math.log(2));
 			zz = new HilbertScanner(depth);
@@ -4530,7 +4895,7 @@ public class GlitchSort extends PApplet {
 		this.statFFTBlockWidth = order;
 		// eliminate fft averaging, don't need it
 		// fft.logAverages(minBandWidth, bandsPerOctave);
-		PixelScanner zz;
+		PixelScannerINF zz;
 		if (isHilbertScan) {
 			int depth = (int) (Math.log(order)/Math.log(2));
 			zz = new HilbertScanner(depth);
@@ -4649,12 +5014,12 @@ public class GlitchSort extends PApplet {
 	}
 
 	/**
-	 * parameterless method that ControlP5 button calls (a workaround)
+	 * parameterless method that ControlP5 button in FFT tab calls (a workaround)
 	 */
 	public void analyzeEqBands() {
 		analyzeEq(true);
 	}
-     
+	
 	// TODO calculate accurate center frequency values for the bands we actually have
 	/**
 	 * Examines display buffer Brightness channel and outputs mean 
@@ -4669,7 +5034,7 @@ public class GlitchSort extends PApplet {
 		//    		println("block size must be 8, 16, 32, 64, 128, 256 or 512 for FFT glitching");
 		//    		return;
 		//    	}
-		PixelScanner zz;
+		PixelScannerINF zz;
 		if (isHilbertScan) {
 			int depth = (int) (Math.log(order)/Math.log(2));
 			zz = new HilbertScanner(depth);
@@ -5001,7 +5366,7 @@ public class GlitchSort extends PApplet {
     public class GlitchSignal implements AudioSignal {
     	// either 32 or 64 work well for close to real time synthesis
     	int blockEdgeSize = 64;
-    	Zigzagger zz;	// a Zigzagger
+    	PixelScannerINF zz;	// a pixel scanner, Zigzagger or HilbertScanner
     	int dw;			// number of horizontal tiles
     	int dh;			// number of vertical tiles
     	int w;			// total pixel width of complete horizontal tiles
@@ -5021,8 +5386,18 @@ public class GlitchSort extends PApplet {
     	float[] hammingValues;
 
     	public GlitchSignal() {
-       		println("audio Zigzag order = "+ blockEdgeSize);
-       		zz = new Zigzagger(blockEdgeSize);
+    		//        		zz = new Zigzagger(blockEdgeSize);
+    		/* */
+    		if (isHilbertScan) {
+    			int depth = (int) (Math.log(blockEdgeSize)/Math.log(2));
+    			zz = new HilbertScanner(depth);
+    			println("audio Hilbert depth = "+ depth);
+    		}
+    		else {
+    			zz = new Zigzagger(blockEdgeSize);
+    			println("audio Zigzag order = "+ blockEdgeSize);
+    		}
+    		/* */
        		hamming = new HammingWindow();
        		int len = blockEdgeSize * blockEdgeSize;
        		hammingValues = new float[len];
@@ -5031,9 +5406,20 @@ public class GlitchSort extends PApplet {
     			}
     	}
     	
-    	public Zigzagger getZz() {
+    	public PixelScannerINF getZz() {
     		if (null == zz) {
-          		zz = new Zigzagger(blockEdgeSize);
+      		//        		zz = new Zigzagger(blockEdgeSize);
+      		/* */
+      		if (isHilbertScan) {
+      			int depth = (int) (Math.log(blockEdgeSize)/Math.log(2));
+      			zz = new HilbertScanner(depth);
+      			//println("audio Hilbert depth = "+ depth);
+      		}
+      		else {
+      			zz = new Zigzagger(blockEdgeSize);
+      			//println("audio Zigzag order = "+ blockEdgeSize);
+      		}
+      		/* */
     		}
     		return zz;
     	}
@@ -5209,7 +5595,18 @@ public class GlitchSort extends PApplet {
     	public void decode(char c) {
     		cmd = '0';
     		if (mapX > w - blockEdgeSize + ow || mapY > h - blockEdgeSize + oh) return;
-    		Zigzagger zz = new Zigzagger(blockEdgeSize);
+    		//        		zz = new Zigzagger(blockEdgeSize);
+    		/* */
+    		if (isHilbertScan) {
+    			int depth = (int) (Math.log(blockEdgeSize)/Math.log(2));
+    			zz = new HilbertScanner(depth);
+    			//println("audio Hilbert depth = "+ depth);
+    		}
+    		else {
+    			zz = new Zigzagger(blockEdgeSize);
+    			//println("audio Zigzag order = "+ blockEdgeSize);
+    		}
+    		/* */
     		img.loadPixels();
     		int[] pix = zz.pluck(img.pixels, img.width, img.height, mapX, mapY);
     		// do something to a single block

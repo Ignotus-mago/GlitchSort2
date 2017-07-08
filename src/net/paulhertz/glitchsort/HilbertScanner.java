@@ -13,14 +13,14 @@ import net.paulhertz.aifile.*;
  * Provides methods for reading (pluck) and writing (plant) from an array of pixels.
  *
  */
-class HilbertScanner implements PixelScanner {
+class HilbertScanner implements PixelScannerINF {
 	/** x coordinates */
 	private int[] xcoords;
 	/** y coordinates */
 	private int[] ycoords;
-	/** x coordinates */
+	/** flipped x coordinates */
 	private int[] flipXcoords;
-	/** y coordinates */
+	/** flipped y coordinates */
 	private int[] flipYcoords;
 	/** the depth of recursion of the Hilbert curve */
 	private int depth = 1;
@@ -59,7 +59,7 @@ class HilbertScanner implements PixelScanner {
 		Turtle turtle = new Turtle();
 		turtle.setTurtleX(0);
 		turtle.setTurtleY(0);
-		PApplet.println("-------- d * d = "+ d * d);
+		// PApplet.println("-------- d * d = "+ d * d);
 		xcoords = new int[d * d];
 		ycoords = new int[d * d];
 		int pos = 0;
@@ -186,4 +186,41 @@ class HilbertScanner implements PixelScanner {
 		this.verbose = verbose;
 	}
 	
+	/**
+	 * Rotates an array of ints left by d values. Uses efficient "Three Rotation" algorithm.
+	 * @param arr   array of ints to rotate
+	 * @param d     number of elements to shift
+	 */
+	public void rotateLeft(int[] arr, int d) {
+		d = d % arr.length;
+		reverseArray(arr, 0, d - 1);
+		reverseArray(arr, d, arr.length - 1);
+		reverseArray(arr, 0, arr.length - 1);
+	}
+	
+	/**
+	 * Reverses an arbitrary subset of an array.
+	 * @param arr   array to modify
+	 * @param l     left bound of subset to reverse
+	 * @param r     right bound of subset to reverse
+	 */
+	public void reverseArray(int[] arr, int l, int r) {
+		int temp;
+		while (l < r) {
+			temp = arr[l];
+			arr[l] = arr[r];
+			arr[r] = temp;
+			l++;
+			r--;
+		}
+	}
+
+	public void rotateXLeft(int offset) {
+		rotateLeft(xcoords, offset);
+	}
+
+	public void rotateYLeft(int offset) {
+		rotateLeft(ycoords, offset);
+	}
+
 }

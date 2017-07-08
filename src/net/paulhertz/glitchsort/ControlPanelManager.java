@@ -26,7 +26,7 @@ public class ControlPanelManager extends PApplet {
 	int step = 18;
 	int widgetH = 14;
 	int labelW = 144;
-	int panelHeight = 392;
+	int panelHeight = 408;
 	int panelWidth = 284;
 	int panelX = 4;
 	int panelY = 36;
@@ -607,13 +607,13 @@ public class ControlPanelManager extends PApplet {
 	 * TODO FFT panel
 	 */
 	public void loadFFTPanel(int h, float min, float max) {
-		// int spacer = 4;
 		int foreColor = app.color(120);
 		int activeColor = app.color(255);
 		int labelColor = app.color(255);
 		//
 		yPos = 6;
 		step = 18;
+		int offset = -2;
 		fftSettings = control.addGroup("FFT", panelX, panelY, panelWidth);
 		fftSettings.setBackgroundColor(panelBackColor);
 		fftSettings.setBackgroundHeight(panelHeight);
@@ -626,19 +626,20 @@ public class ControlPanelManager extends PApplet {
 		Textlabel l12u = control.addTextlabel("equalizerLabelUnder", "________________________________", 8, yPos + 3);
 		l12u.setGroup(fftSettings);		
 		// row of buttons: 
-		yPos += step + step/3;
-		createButton("eqZigzagFFT", 8, yPos, 64, widgetH, fftSettings, "Run (j)");
-		createButton("resetEq", panelWidth/3, yPos, 64, widgetH, fftSettings, "Reset");
-		//// incorporate analysis into FFT ?
-		createButton("analyzeEqBands", 2 * panelWidth/3, yPos, 64, widgetH, fftSettings, "Analyze (;)");
-		yPos += step;
+		yPos += step + offset;
+		createButton("eqZigzagFFT", 8, yPos, 56, widgetH, fftSettings, "Run (j)");
+		createButton("resetEq", panelWidth/4, yPos, 56, widgetH, fftSettings, "Reset");
+		//// TODO incorporate analysis into FFT ?
+		createButton("analyzeEqBands", 2 * panelWidth/4 - 8, yPos, 64, widgetH, fftSettings, "Analyze (;)");
+		createButton("desaturate", 3 * panelWidth/4 - 8, yPos, 64, widgetH, fftSettings, "Desaturate");
+		yPos += step + offset;
 		// label at bottom of eQ bands
 		Textlabel l13 = control.addTextlabel("eqLabel", "----", 8, yPos + h + step/2);
 		l13.setGroup(fftSettings);
 		// equalizer
 		setupEqualizer(yPos, h, max, min);
 		showEqualizerBands();
-		yPos += h + step + step/2;
+		yPos += h + step + step/2 + offset;
 		// HSB/RGB checkboxes for equalizer-controlled FFT
 		CheckBox ch4 = createCheckBox("ChanEq", 8, yPos + 2, 3, (panelWidth - 8)/4, fftSettings, foreColor, activeColor, labelColor);
 		// add items to the checkbox, note that we can't use names that start with sliderIdentifier "_eq" 
@@ -674,13 +675,13 @@ public class ControlPanelManager extends PApplet {
 		*/
 		// statistical FFT settings section
 		// section label
-		yPos += 2 * step;
+		yPos += 2 * step + offset;
 		Textlabel l14 = control.addTextlabel("statFFTLabel", "Statistical FFT", 8, yPos);
 		l14.setGroup(fftSettings);
 		Textlabel l14u = control.addTextlabel("statFFTLabelUnder", "________________________________", 8, yPos + 3);
 		l14u.setGroup(fftSettings);		
 		// buttons
-		yPos += step;
+		yPos += step + offset;
 		createButton("statZigzagFFT", 8, yPos, 64, widgetH, fftSettings, "Run (k)");
 		createButton("resetStat", panelWidth/3, yPos, 64, widgetH, fftSettings, "Reset");
 		//------- begin slider
@@ -790,7 +791,7 @@ public class ControlPanelManager extends PApplet {
 		
 		// formant section
 		// TODO formant popup menu
-		yPos +=  step + step;
+		yPos +=  step + step + offset;
 		int numboxW = 48;
 		int labelW = 24;
 		int hzOffset = 8;
@@ -798,8 +799,8 @@ public class ControlPanelManager extends PApplet {
 		Numberbox n8 = control.addNumberbox("setFfreq1").setPosition(hzOffset, yPos).setSize(numboxW, widgetH);
 		n8.plugTo(app, "setFfreq1").setValue(app.ffreq1);
 		n8.setGroup(fftSettings);
-		n8.setMultiplier(1f);
-		n8.setDecimalPrecision(0);
+		n8.setMultiplier(0.1f);
+		n8.setDecimalPrecision(1);
 		n8.setMin(0.0f);
 		n8.setMax(22050.0f);
 		n8.getCaptionLabel().set("");
@@ -812,8 +813,8 @@ public class ControlPanelManager extends PApplet {
 		Numberbox n9 = control.addNumberbox("setFfreq2").setPosition(hzOffset, yPos).setSize(numboxW, widgetH);
 		n9.plugTo(app, "setFfreq2").setValue(app.ffreq2);
 		n9.setGroup(fftSettings);
-		n9.setMultiplier(1f);
-		n9.setDecimalPrecision(0);
+		n9.setMultiplier(0.1f);
+		n9.setDecimalPrecision(1);
 		n9.setMin(0.0f);
 		n9.setMax(22050.0f);
 		n9.getCaptionLabel().set("");
@@ -825,8 +826,8 @@ public class ControlPanelManager extends PApplet {
 		Numberbox n10 = control.addNumberbox("setFfreq3").setPosition(hzOffset, yPos).setSize(numboxW, widgetH);
 		n10.plugTo(app, "setFfreq3").setValue(app.ffreq3);
 		n10.setGroup(fftSettings);
-		n10.setMultiplier(1f);
-		n10.setDecimalPrecision(0);
+		n10.setMultiplier(0.1f);
+		n10.setDecimalPrecision(1);
 		n10.setMin(0.0f);
 		n10.setMax(22050.0f);
 		n10.getCaptionLabel().set("");
@@ -902,7 +903,30 @@ public class ControlPanelManager extends PApplet {
 		hzOffset += 32;
 		Textlabel l27 = control.addTextlabel("formantScaleLabel", "S", hzOffset, yPos + 4);
 		l27.setGroup(fftSettings);
-		
+		// mute checkboxes 
+		/**/
+		yPos += step;
+		hzOffset = 8;
+		CheckBox ch10 = createCheckBox("FormantMute", hzOffset, yPos + 2, 3, 64, fftSettings, foreColor, activeColor, labelColor);
+		ch10.setColorForeground(app.color(233, 233, 0));
+		ch10.addItem("setMuteF1", 1);
+		ch10.getItem(0).setValue(app.isMuteF1);
+		ch10.getItem(0).setCaptionLabel("mute");
+		ch10.addItem("setMuteF2", 1);
+		ch10.getItem(1).setValue(app.isMuteF2);
+		ch10.getItem(1).setCaptionLabel("mute");
+		ch10.addItem("setMuteF3", 1);
+		ch10.getItem(2).setValue(app.isMuteF3); 
+		ch10.getItem(2).setCaptionLabel("mute"); 
+		// another row
+		yPos += step;
+		hzOffset = 8;
+		createButton("loadFormantOctave", hzOffset, yPos, 48, widgetH, fftSettings, "Scale");
+		hzOffset += numboxW + labelW + gap;
+		createButton("permuteFormantValues", hzOffset, yPos, 48, widgetH, fftSettings, "Perm");
+		hzOffset += numboxW + labelW + gap;
+		createButton("halfFormantValues", hzOffset, yPos, 48, widgetH, fftSettings, "half-dbl");
+		/**/
 		
 		// move fftSettings into a tab
 		fftSettings.moveTo("FFT");
@@ -1087,6 +1111,7 @@ public class ControlPanelManager extends PApplet {
 		createButton("reduceColors", 2 * panelWidth/3 + 28, yPos, 60, widgetH, mungeSettings, "Reduce (p)");
 		// denoise
 		yPos += step + spacer;
+		createButton("mean", 1 * panelWidth/3 + 28, yPos, 60, widgetH, mungeSettings, "Mean (CL-9)");
 		createButton("denoise", 2 * panelWidth/3 + 28, yPos, 60, widgetH, mungeSettings, "Denoise (9)");
 		// shift color channels
 		yPos += step;
@@ -1110,6 +1135,9 @@ public class ControlPanelManager extends PApplet {
 		n6.getCaptionLabel().set("");
 		Textlabel l10 = control.addTextlabel("shiftLabel", "Shift", 2 * panelWidth/3 + 28 - 36, yPos + 4);
 		l10.setGroup(mungeSettings);
+		// shift pixels (rotateLeft)
+		yPos += step + spacer;
+		createButton("doShift", 8, yPos, 76, widgetH, mungeSettings, "Rotate Left (')");
 		// snap, unsnap
 		yPos += step + spacer;
 		createButton("snap", 8, yPos, 76, widgetH, mungeSettings, "Snap (n)");
@@ -1384,16 +1412,22 @@ public void loadAudifyPanel() {
 			}
 			else if ("hilbert".equals(evt.getName())) {
 				app.isHilbertScan = ((int)(evt.getGroup().getArrayValue()[0])) == 1;
-				println("-------- isHilbertScane = "+ app.isHilbertScan);
+				println("-------- isHilbertScan = "+ app.isHilbertScan);
 			}
 			else if ("FormantRGB".equals(evt.getName())) {
 				app.isRunFormantRGB = ((int)(evt.getGroup().getArrayValue()[0])) == 1;
 				println("-------- isRunFormantRGB = "+ app.isRunFormantRGB);
 			}
-			else if ("Shift".equals(evt.getName())) {
+			else if ("Shift".equals(evt.getName())) { 
 				app.isShiftR = ((int)(evt.getGroup().getArrayValue()[0])) == 1;
 				app.isShiftG = ((int)(evt.getGroup().getArrayValue()[1])) == 1;
 				app.isShiftB = ((int)(evt.getGroup().getArrayValue()[2])) == 1;
+			}
+			else if ("FormantMute".equals(evt.getName())) {
+				app.isMuteF1 = ((int)(evt.getGroup().getArrayValue()[0])) == 1;
+				app.isMuteF2 = ((int)(evt.getGroup().getArrayValue()[1])) == 1;
+				app.isMuteF3 = ((int)(evt.getGroup().getArrayValue()[2])) == 1;
+				println("-------- formant muting set");
 			}
 			else if ("Link".equals(evt.getName())) {
 				if (app.verbose) println("Link event");

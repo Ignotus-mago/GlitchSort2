@@ -8,7 +8,7 @@ import processing.core.PApplet;
  * Provides methods for reading (pluck) and writing (plant) from an array of pixels.
  *
  */
-class Zigzagger implements PixelScanner {
+class Zigzagger implements PixelScannerINF {
 	/** x coordinates */
 	private int[] xcoords;
 	/** y coordinates */

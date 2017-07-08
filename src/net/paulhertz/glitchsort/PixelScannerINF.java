@@ -2,7 +2,7 @@ package net.paulhertz.glitchsort;
 
 import static net.paulhertz.glitchsort.GlitchConstants.*;
 
-public interface PixelScanner {
+public interface PixelScannerINF {
 	
 	abstract void flipX();
 	
@@ -33,5 +33,50 @@ public interface PixelScanner {
 	abstract int getDepth();
 	
 	abstract int getBlockWidth();
+	
+	/*
+	 * 
+	//
+	// template for processing PixelScanner arrays
+	//
+	  public void processScan(int val) {
+    	int order = (int) Math.sqrt(statBufferSize);
+    	this.statFFTBlockWidth = order;
+    	PixelScanner zz;
+    	if (isHilbertScan) {
+    		int depth = (int) (Math.log(order)/Math.log(2));
+    		zz = new HilbertScanner(depth);
+    		println("Hilbert depth = "+ depth);
+    	}
+    	else {
+    		zz = new Zigzagger(order);
+    		println("Zigzag order = "+ order);
+    	}
+    	int dw = (img.width / order);
+    	int dh = (img.height / order);
+    	int w = dw * order;
+    	int h = dh * order;
+    	int ow = (img.width - w) / 2;
+    	int oh = (img.height - h) / 2;
+		  backup();
+		  img.loadPixels();
+			// processing loop
+    	for (int y = 0; y < dh; y++) {
+    		for (int x = 0; x < dw; x++) {
+    			int mx = x * order + ow;
+    			int my = y * order + oh;
+    			int[] pix = zz.pluck(img.pixels, img.width, img.height, mx, my);
+    			// do stuff to pix here
+    			
+    			zz.plant(img.pixels, pix, img.width, img.height, mx, my);
+    		}
+    	}
+		  // write to the image
+		  img.updatePixels();
+		  fitPixels(isFitToScreen, false);
+	  }
+	 * 
+	 */
+	
 	
 }

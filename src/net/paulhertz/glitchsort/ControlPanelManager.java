@@ -10,6 +10,9 @@ import net.paulhertz.glitchsort.GlitchSort.IntRange;
 import processing.core.*;
 import controlP5.*;
 
+// audio operations with minim
+import ddf.minim.*;
+
 /**
  * @author paulhz
  * Manages controls and layout on control panel. Future: consider a separate class for each
@@ -37,11 +40,13 @@ public class ControlPanelManager extends PApplet {
 	//
 	Group glitchSettings;
 	Group fftSettings;
+	Group synthSettings;
 	Group mungeSettings;
 	Group jpegSettings;
 	Group audifySettings;
 	Tab glitchSettingsTab;
 	Tab fftSettingsTab;
+	Tab synthSettingsTab;
 	Tab mungeSettingsTab;
 	Tab jpegSettingsTab;
 	Tab audifySettingsTab;
@@ -70,10 +75,12 @@ public class ControlPanelManager extends PApplet {
 		// load Glitch panel
 		loadGlitchPanel();
 		this.glitchSettingsTab.setActive(true);
-		// load FFT panel
-		loadFFTPanel(app.eqH, app.eqMin, app.eqMax);
 		// load Munge panel
 		loadMungePanel();
+		// load FFT panel
+		loadFFTPanel(app.eqH, app.eqMin, app.eqMax);
+		// load Synth panel (placeholder code)
+		// loadSynthPanel();
 		// load Audify panel
 		loadAudifyPanel();
 		// initialize panel glitchSettings, now that panels are loaded
@@ -1050,6 +1057,43 @@ public class ControlPanelManager extends PApplet {
 		return val;
 	}
 
+
+		/*****************************************/
+    /*                                       */
+    /*          >>> SYNTH PANEL <<<          */
+    /*                                       */
+    /*****************************************/
+
+	
+		public void loadSynthPanel() {
+				int foreColor = app.color(120);
+				int activeColor = app.color(255);
+				int labelColor = app.color(255);
+				//
+				yPos = 6;
+				step = 18;
+				int offset = -2;
+				synthSettings = control.addGroup("Synth", panelX, panelY, panelWidth);
+				synthSettings.setBackgroundColor(panelBackColor);
+				synthSettings.setBackgroundHeight(panelHeight);
+				synthSettings.setBarHeight(widgetH + 4);
+				synthSettings.setMoveable(false);     // dragging throws absolute position off...
+				// widgets
+				// audio operators: Frequency, Amplitude, Phase. 
+				// image operators: RGBA gradient
+				// storage class: ColorOscillator
+				// move fftSettings into a tab
+				synthSettings.moveTo("Synth");
+				synthSettingsTab = control.getTab("Synth");
+				synthSettingsTab.activateEvent(true);
+				synthSettingsTab.disableCollapse();
+				synthSettingsTab.setLabel("  Synth  ");
+				synthSettingsTab.setId(2);
+		}
+		
+		
+	
+	
 	
     /*****************************************/
     /*                                       */

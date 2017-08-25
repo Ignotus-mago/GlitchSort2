@@ -101,6 +101,8 @@ import static net.paulhertz.glitchsort.GlitchConstants.*;
 // by Paul Hertz, 2012
 // http://paulhertz.net/
 
+// we run in Processing 2, to use P5 UI and run as a Java Applet
+
 // press spacebar to show or hide the control panel
 // option-drag on control panel bar to move control panel
 // shift-drag on image to pan large image (no shift key needed if control panel is hidden)
@@ -328,7 +330,7 @@ public class GlitchSort extends PApplet {
 	// right now we use statBufferSize for all fft buffer sizes
 	int eqBufferSize;
 	// float sampleRate = 44100.0f;
-	float sampleRate = 262144.0f; // (1024^2)/4
+	float sampleRate = (512 * 512)/ (float)(Math.sqrt(5)); // 
 	public int eqH = 100;
 	public float eqMax = 1;
 	public float eqMin = -1;
@@ -1147,7 +1149,7 @@ public class GlitchSort extends PApplet {
 			printFileInfo();
 		}
 		else if (ch == '&') {
-			stepFile();
+			stepFile();															// step to the next file in the selected folder
 		}
 		else if (ch == '*') {
 			chooseFolder();                          // choose folder for importing files on command
@@ -4132,9 +4134,9 @@ public class GlitchSort extends PApplet {
     // ffreq1, ffreq2, ffreq3 will also be used as f0, f1, f2 
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
-    // float ffreq1 = 1.1484375f * 0.75f;    // 1.1484375 = 44100 divided by (800 * 48)
-    // float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
-    // float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
+     float ffreq1 = 1.1484375f * 10f;    // 1.1484375 = 44100 divided by (800 * 48)
+     float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
+     float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
@@ -4148,11 +4150,11 @@ public class GlitchSort extends PApplet {
 //    float ffreq1 = 7367.1875f;   // 23 * 44100 / 128
 //    float ffreq2 = 3330.0f;
 //    float ffreq3 = 1033.0f;
-    float ffreq1 = 0.9870f;   
+//    float ffreq1 = 22.05f;   
     float fmult1 = 1;
-    float fmult2 = 1;
-    float ffreq2 = 1.5970f;
-    float ffreq3 = 2.5840f;
+    float fmult2 = 1.5f;
+//    float ffreq2 = 1.1f;
+ //   float ffreq3 = 1.3f;
     float famp1 = 3.0f;
     float famp2 = 3.0f;
     float famp3 = 3.0f;
@@ -4160,7 +4162,7 @@ public class GlitchSort extends PApplet {
     boolean isMuteF2 = false;
     boolean isMuteF3 = false;
     // formant scaling factor
-    float formantScale = 4.0f;
+    float formantScale = 0.5f;
     // DC Bias
     float fDCBias = 0.0f;
     
@@ -5508,11 +5510,13 @@ public class GlitchSort extends PApplet {
     		if (mx == this.mapX && my == this.mapY && !isUpdate) {
     			// copy the buffer
     			// copyBuffer(samp);
-    			// zeroBuffer();
-    			copyBuffer(samp);
+    			// println("same");
+    			zeroBuffer(samp);
+    			// copyBuffer(samp);
     		} 
     		else {
     			// calculate a new buffer
+    			//println("---- different");
     			refreshBuffer(mx, my, fac, samp);
     			isUpdate = false;
     			if (cmd != '0') {decode(cmd);}   				
@@ -5562,6 +5566,13 @@ public class GlitchSort extends PApplet {
     		}
     	}
     	
+    	public void zeroBuffer(float[] samp) {
+    		if (null == samp) return;
+     		for (int i = 0; i < samp.length; i++) {
+    			samp[i] = 0;
+    		}
+    	}
+    	
     	public float hammingValue(int length, int index) {
     		return 0.54f - 0.46f * (float) Math.cos(TWO_PI * index / (length - 1));
     	}
@@ -5571,7 +5582,7 @@ public class GlitchSort extends PApplet {
     		yinc += (dy * this.blockEdgeSize);
      	}
     	
-   	public int getMapX() {
+    	public int getMapX() {
     		return this.mapX;
     	}
     	public int getMapY() {

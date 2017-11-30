@@ -329,8 +329,8 @@ public class GlitchSort extends PApplet {
 	// TODO implement separate FFTBuffer for eqch operation
 	// right now we use statBufferSize for all fft buffer sizes
 	int eqBufferSize;
-	// float sampleRate = 44100.0f;
-	float sampleRate = (512 * 512)/ (float)(Math.sqrt(5)); // 
+  // float sampleRate = 44100.0f;
+	float sampleRate = (256 * 256); // 65536
 	public int eqH = 100;
 	public float eqMax = 1;
 	public float eqMin = -1;
@@ -378,6 +378,7 @@ public class GlitchSort extends PApplet {
 	DecimalFormat twoPlaces;
 	DecimalFormat noPlaces;
 	DecimalFormat fourFrontPlaces;
+	DecimalFormat commaTwoPlaces;
 	List<ControllerInterface<?>> mouseControls;
 	// Control Panel Manager handles setup of panels
 	ControlPanelManager cpm;
@@ -390,9 +391,9 @@ public class GlitchSort extends PApplet {
 	public AudioOutput out;
 	boolean audioIsRunning;
 	boolean screenNeedsUpdate = false;
-	boolean isTrackMouse = true;
-	boolean isFollowArrows ;
-	boolean isAutoPilot;
+	boolean isTrackMouse;
+	boolean isFollowArrows;
+	boolean isAutoPilot = true;
 	boolean isMuted;
 	boolean isFrozen;
 	boolean isHidden;
@@ -582,6 +583,8 @@ public class GlitchSort extends PApplet {
 		twoPlaces = new DecimalFormat("0.00", dfSymbols);
 		noPlaces = new DecimalFormat("00", dfSymbols);
 		fourFrontPlaces = new DecimalFormat("0000", dfSymbols);
+		dfSymbols.setDecimalSeparator(',');
+		commaTwoPlaces = new DecimalFormat("0.00", dfSymbols);
 	}
 	
 	/**
@@ -700,8 +703,9 @@ public class GlitchSort extends PApplet {
 		cmd = "t";
 		/*// do the animation process
 		process001();*/
+		scaleTest2();
 		// or just do a windowedFFT
-		windowedFFT();
+		// windowedFFT();
 //		cmd = "g";
 //		for (int i = 0; i < 128; i++) {
 //			setLineCount(233);
@@ -884,6 +888,58 @@ public class GlitchSort extends PApplet {
 		}
 		fileBaseName = oldFileBaseName;
 	}
+	
+	// test with sampleRate = 65536
+	// output file to selected folder: open a file in the folder
+	// set FFT, use "+" key to trigger (see commandSequence() method)
+	public void scaleTest2() {
+		sampleRate = 65536;       // 256 * 256
+		String oldFileBaseName = fileBaseName;
+		// set 2-bit color quantization
+		setColorQuantize(2);
+		cpm.getControl().getController("setColorQuantize").setBroadcast(false);
+		cpm.getControl().getController("setColorQuantize").setValue(colorQuantize);
+		cpm.getControl().getController("setColorQuantize").setBroadcast(true);
+		// start with a subsonic frequency, 1.71875Hz
+		float baseFreq = 440.0f/256;
+		famp1 = 3.0f;
+		famp2 = 3.0f;
+		famp3 = 3.0f;
+		int octave = 1;
+		for (int k = 0; k < 15; k++) {
+			ffreq1 = (baseFreq * octave);
+			if (ffreq1 > sampleRate/2) {
+				println("----->>>-------->>>>> end of scale test at Nyquist Limit <<<<<--------<<<-----");
+				break;
+			}
+			ffreq2 = ffreq1;
+			ffreq3 = ffreq1;
+		    // ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
+		    // ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
+			// ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
+			// ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
+			isHilbertScan = true;
+			// set up an octave of frequencies, loadFormantList() would also load the vowel formants again
+			loadFormantOctave();
+			// last frequency of an iteration is first frequency of the next iteration, so skip last
+			for (int j = 11; j < formantList.length - 1; j++) {
+				formantIndex = j;
+				theFormant = formantList[formantIndex];
+				if (theFormant.freq1 > sampleRate/2) break;
+				for (int i = 0; i < 8; i++) {
+					exec("6");
+				}
+				fileBaseName = "unison_"+ theFormant.symbol +"_"+ commaTwoPlaces.format(theFormant.freq1);
+				// fileBaseName = "rgbformant_"+ theFormant.symbol +"_"+ noPlaces.format(theFormant.freq1);
+				// exec("s");
+				// exec("9p9p99p9999p99999999p(p((p");
+				exec("sR");
+			}
+			octave *= 2;
+		}
+		fileBaseName = oldFileBaseName;
+	}
+
 
 	public void shiftTest() {
 		// String oldFileBaseName = fileBaseName;
@@ -4130,17 +4186,26 @@ public class GlitchSort extends PApplet {
     /*                                          */
     /********************************************/
     
+    // sampleRate variable has a huge influence on patterns. The ratio of sampleRate to 
+    // filter frequency determines the patterns created. My first series of patterns used
+    // a sampleRate of 44100. Later tests used powers of 2, e.g., 65536 = (256 * 256).
+
     float oneCent = (float) Math.pow(2, 1/1200.0);
     // ffreq1, ffreq2, ffreq3 will also be used as f0, f1, f2 
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
-     float ffreq1 = 1.1484375f * 10f;    // 1.1484375 = 44100 divided by (800 * 48)
-     float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
-     float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
+     // float ffreq1 = (1.1484375f * 10);    // 1.1484375 = 44100 divided by (800 * 48)
+    float ffreq1 = 8890.0f;
+//    float ffreq2 = 5147.0f; 
+//    float ffreq3 = 5347.0f;
+//     float ffreq2 = ffreq1 * (float) Math.pow(2, 5/12.0); //  perfect fourth
+//     float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
+//     float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
+//     float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
-//    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
-//    float ffreq3 = ffreq1 * (float) Math.pow(2, 4/1200.0); // four cents;
+    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
+    float ffreq3 = ffreq1 * (float) Math.pow(2, 4/1200.0); // four cents;
     // some interesting frequencies: 18837, 1033, 7920, 8890, 6286
 //    float ffreq1 = 1033;    //
 //    float ffreq2 = 6286;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30
@@ -4287,7 +4352,7 @@ public class GlitchSort extends PApplet {
 			setFfreq3(f.freq3);
 		}
 
-		/*
+ 		/*
      * some useful information
      * 
      * FORMANTS

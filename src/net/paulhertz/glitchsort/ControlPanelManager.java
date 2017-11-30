@@ -809,7 +809,7 @@ public class ControlPanelManager extends PApplet {
 		n8.setMultiplier(0.1f);
 		n8.setDecimalPrecision(1);
 		n8.setMin(0.0f);
-		n8.setMax(22050.0f);
+		n8.setMax(this.app.sampleRate/2);
 		n8.getCaptionLabel().set("");
 		// text label for number box
 		hzOffset += numboxW;
@@ -823,7 +823,7 @@ public class ControlPanelManager extends PApplet {
 		n9.setMultiplier(0.1f);
 		n9.setDecimalPrecision(1);
 		n9.setMin(0.0f);
-		n9.setMax(22050.0f);
+		n9.setMax(this.app.sampleRate/2);
 		n9.getCaptionLabel().set("");
 		hzOffset += numboxW;
 		Textlabel l21 = control.addTextlabel("f2Label", "F2", hzOffset, yPos + 4);
@@ -836,7 +836,7 @@ public class ControlPanelManager extends PApplet {
 		n10.setMultiplier(0.1f);
 		n10.setDecimalPrecision(1);
 		n10.setMin(0.0f);
-		n10.setMax(22050.0f);
+		n10.setMax(this.app.sampleRate/2);
 		n10.getCaptionLabel().set("");
 		hzOffset += numboxW;
 		Textlabel l22 = control.addTextlabel("f3Label", "F3", hzOffset, yPos + 4);
@@ -1265,7 +1265,7 @@ public void loadAudifyPanel() {
 	r6.getItem(1).setCaptionLabel("Arrows");
 	r6.addItem("setAutoPilot", 3);
 	r6.getItem(2).setCaptionLabel("Autopilot");	
-	if (app.isTrackMouse) r6.activate("setTrackMouse");
+	if (app.isAutoPilot) r6.activate("setAutoPilot");
 	yPos += step;
 	CheckBox ch7 = createCheckBox("Muting", 8, yPos + 2, 3, (panelWidth - 8)/4, audifySettings, foreColor, activeColor, labelColor);
 	ch7.setColorForeground(app.color(233, 233, 0));

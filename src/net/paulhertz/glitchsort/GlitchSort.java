@@ -901,7 +901,8 @@ public class GlitchSort extends PApplet {
 		cpm.getControl().getController("setColorQuantize").setValue(colorQuantize);
 		cpm.getControl().getController("setColorQuantize").setBroadcast(true);
 		// start with a subsonic frequency, 1.71875Hz
-		float baseFreq = 440.0f/256;
+//		float baseFreq = 440.0f/256;
+		float baseFreq = 1.0f;
 		famp1 = 3.0f;
 		famp2 = 3.0f;
 		famp3 = 3.0f;
@@ -4195,17 +4196,17 @@ public class GlitchSort extends PApplet {
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
      // float ffreq1 = (1.1484375f * 10);    // 1.1484375 = 44100 divided by (800 * 48)
-    float ffreq1 = 8890.0f;
+      float ffreq1 = 55.00f;
 //    float ffreq2 = 5147.0f; 
 //    float ffreq3 = 5347.0f;
-//     float ffreq2 = ffreq1 * (float) Math.pow(2, 5/12.0); //  perfect fourth
-//     float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
+float ffreq2 = ffreq1 * (float) Math.pow(2, 5/12.0); //  perfect fourth
+float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
 //     float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
 //     float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
 //    float ffreq3 = ffreq1 * (float) Math.pow(2, 11/12.0); // fourth higher, for a 7-10-13 voicing;
-    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
-    float ffreq3 = ffreq1 * (float) Math.pow(2, 4/1200.0); // four cents;
+//    float ffreq2 = ffreq1 * (float) Math.pow(2, 2/1200.0); //  two cents;
+//    float ffreq3 = ffreq1 * (float) Math.pow(2, 4/1200.0); // four cents;
     // some interesting frequencies: 18837, 1033, 7920, 8890, 6286
 //    float ffreq1 = 1033;    //
 //    float ffreq2 = 6286;			// amp: 1.0, 3.68, 3.30; 2.93, 1.0, 3.30

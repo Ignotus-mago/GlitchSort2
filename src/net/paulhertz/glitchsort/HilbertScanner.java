@@ -8,8 +8,8 @@ import processing.core.*;
 import net.paulhertz.aifile.*;
 
 /**
- * Facilitates the "zigzag" scanning of a square block of pixels with a variable edge dimension set by the user.
- * Zigzag scanning is used in the JPEG compression algorithm, and artifacts caused by it occasionally show up in JPEG errors (glitches).
+ * Implement Hilbert curve scanning of a square block of pixels with an edge dimension set by the user.
+ * Hilbert scanning provides a high degree of local coherence. Edge dimension must be a power of 2.
  * Provides methods for reading (pluck) and writing (plant) from an array of pixels.
  *
  */

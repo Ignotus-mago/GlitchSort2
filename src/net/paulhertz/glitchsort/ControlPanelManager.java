@@ -53,7 +53,11 @@ public class ControlPanelManager extends PApplet {
 	Rectangle controlPanelRect;
 	String sliderIdentifier = "_eq";
 	//
-	
+	/*
+	 * text label count 27
+	 * slider count 5
+	 * checkbox count 10
+	 */
 
 	// TODO create local controlP5, put controls in their own window
 	public ControlPanelManager(GlitchSort parent, int width, int height) {
@@ -634,11 +638,12 @@ public class ControlPanelManager extends PApplet {
 		l12u.setGroup(fftSettings);		
 		// row of buttons: 
 		yPos += step + offset;
-		createButton("eqZigzagFFT", 8, yPos, 56, widgetH, fftSettings, "Run (j)");
-		createButton("resetEq", panelWidth/4, yPos, 56, widgetH, fftSettings, "Reset");
+		createButton("eqZigzagFFT", 8, yPos, 40, widgetH, fftSettings, "Run (j)");
+		createButton("resetEq", panelWidth/5, yPos, 48, widgetH, fftSettings, "Reset");
 		//// TODO incorporate analysis into FFT ?
-		createButton("analyzeEqBands", 2 * panelWidth/4 - 8, yPos, 64, widgetH, fftSettings, "Analyze (;)");
-		createButton("desaturate", 3 * panelWidth/4 - 8, yPos, 64, widgetH, fftSettings, "Desaturate");
+		createButton("analyzeEqBands", 2 * panelWidth/5, yPos, 48, widgetH, fftSettings, "Anal (;)");
+		createButton("desaturate", 3 * panelWidth/5, yPos, 48, widgetH, fftSettings, "Desat");
+		createButton("randomBands", 4 * panelWidth/5, yPos, 48, widgetH, fftSettings, "Random");
 		yPos += step + offset;
 		// label at bottom of eQ bands
 		Textlabel l13 = control.addTextlabel("eqLabel", "----", 8, yPos + h + step/2);
@@ -925,6 +930,12 @@ public class ControlPanelManager extends PApplet {
 		ch10.addItem("setMuteF3", 1);
 		ch10.getItem(2).setValue(app.isMuteF3); 
 		ch10.getItem(2).setCaptionLabel("mute"); 
+		int btnStep = 75;
+		// TODO adjust spacing
+		createButton("stepFfreq1", hzOffset + 40, yPos, 20, widgetH, fftSettings, "+");
+		createButton("stepFfreq2", hzOffset + 40 + btnStep, yPos, 20, widgetH, fftSettings, "+");
+		createButton("stepFfreq3", hzOffset + 40 + btnStep + btnStep, yPos, 20, widgetH, fftSettings, "+");
+		createButton("stepAll", hzOffset + 40 + btnStep + btnStep + 40, yPos, 28, widgetH, fftSettings, "+");
 		// another row
 		yPos += step;
 		hzOffset = 8;
@@ -1208,6 +1219,7 @@ public class ControlPanelManager extends PApplet {
 		createButton("munge", 2 * panelWidth/3 + 28, yPos, 60, widgetH, mungeSettings, "Munge (m)");
 		// nexxxxxt....
 		yPos += step;
+		
 		// create munge settings tab
 		Tab global = control.getTab("default");
 		global.setLabel("");
@@ -1283,6 +1295,8 @@ public void loadAudifyPanel() {
 	ch8.addItem("setPipeToOSC", 4);
 	ch8.getItem(0).setCaptionLabel("Pipe to OSC");
 	yPos += step;
+	createButton("whoCalled", 8, yPos, 64, widgetH, audifySettings, "Doobie");
+	createButton("moose", panelWidth/3, yPos, 64, widgetH, audifySettings, "Moose");
 	
 	// create audify settings tab
 	Tab global = control.getTab("default");

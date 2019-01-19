@@ -88,11 +88,12 @@ import javax.imageio.*;
 import javax.imageio.stream.*;
 import processing.core.*;
 import ddf.minim.analysis.*;
+import ddf.minim.spi.AudioRecordingStream;
 import ddf.minim.*;
 import controlP5.*;
 import controlP5.Controller;
 import net.paulhertz.aifile.*;
-import net.paulhertz.util.Permutator;
+import net.paulhertz.util.*;
 // static import statement (Java 1.5) allows us to use unqualified constant names
 import static net.paulhertz.glitchsort.GlitchConstants.*;
 
@@ -321,6 +322,7 @@ public class GlitchSort extends PApplet {
 	Minim minim;
 	Minim minim2;
 	FFT statFFT;
+	// currently we aren't using eqFFT, statFFT does all the work
 	FFT eqFFT;
 	int zigzagBlockWidth = 128;
 	int statFFTBlockWidth = 64;
@@ -329,8 +331,8 @@ public class GlitchSort extends PApplet {
 	// TODO implement separate FFTBuffer for eqch operation
 	// right now we use statBufferSize for all fft buffer sizes
 	int eqBufferSize;
-  // float sampleRate = 44100.0f;
-	float sampleRate = (256 * 256); // 65536
+  float sampleRate = 44100.0f;
+	// float sampleRate = 65536; 				// (256 * 256); // 65536
 	public int eqH = 100;
 	public float eqMax = 1;
 	public float eqMin = -1;
@@ -373,18 +375,6 @@ public class GlitchSort extends PApplet {
 	public boolean isCutLinkedToBoost = false;
 	float[] audioBuf;
 
-	// -------- Control Panel -------- //
-	ControlP5 controlP5;
-	DecimalFormat twoPlaces;
-	DecimalFormat noPlaces;
-	DecimalFormat fourFrontPlaces;
-	DecimalFormat commaTwoPlaces;
-	List<ControllerInterface<?>> mouseControls;
-	// Control Panel Manager handles setup of panels
-	ControlPanelManager cpm;
-	/** reference to the control panel frame (display window for controls) */
-	Frame controlFrame;
-
 	// -------- Audio -------- //
 	char lastCommand;
 	public GlitchSignal glitchSignal;
@@ -398,7 +388,21 @@ public class GlitchSort extends PApplet {
 	boolean isFrozen;
 	boolean isHidden;
 	boolean isPipeToOSC;
+	AudioRecorder recorder;
+	AudioRecordingStream recording;
 	
+	// -------- Control Panel -------- //
+	ControlP5 controlP5;
+	DecimalFormat twoPlaces;
+	DecimalFormat noPlaces;
+	DecimalFormat fourFrontPlaces;
+	DecimalFormat commaTwoPlaces;
+	List<ControllerInterface<?>> mouseControls;
+	// Control Panel Manager handles setup of panels
+	ControlPanelManager cpm;
+	/** reference to the control panel frame (display window for controls) */
+	Frame controlFrame;
+
 	// -------- File Tracker -------- //
 	
 	// -------- ZigZag variables -------- //
@@ -416,6 +420,8 @@ public class GlitchSort extends PApplet {
 	
 	/** IgnoCodeLib library */
 	IgnoCodeLib igno;
+	/** Random number utility */
+	RandUtil randutil;
 	
 	/** workaround for Eclipse and Processing differences, MacOS Mavericks issues */
 	String projPath = "/Users/paulhz/Developer/workspace/GlitchSort/bin"; 
@@ -476,6 +482,7 @@ public class GlitchSort extends PApplet {
 			projPath = sketchPath;
 		}
 		igno = new IgnoCodeLib(this);
+		randutil = new RandUtil();
 		println("Project Path = "+ projPath);
 		println("Sketch Path = "+ sketchPath);
 	}
@@ -701,11 +708,19 @@ public class GlitchSort extends PApplet {
 	public void commandSequence() {
 		String cmd;
 		cmd = "t";
+		//
+		//
+		for (int i = 0; i < 16; i++) mean();
+		for (int i = 0; i < 16; i++) degrade();
+		//
+		//
 		/*// do the animation process
 		process001();*/
-		scaleTest2();
+		// ----- scaleTest3(); ----- //
 		// or just do a windowedFFT
 		// windowedFFT();
+		//
+		//
 //		cmd = "g";
 //		for (int i = 0; i < 128; i++) {
 //			setLineCount(233);
@@ -902,12 +917,13 @@ public class GlitchSort extends PApplet {
 		cpm.getControl().getController("setColorQuantize").setBroadcast(true);
 		// start with a subsonic frequency, 1.71875Hz
 //		float baseFreq = 440.0f/256;
+//		float baseFreq = 1.0f;
 		float baseFreq = 1.0f;
 		famp1 = 3.0f;
 		famp2 = 3.0f;
 		famp3 = 3.0f;
 		int octave = 1;
-		for (int k = 0; k < 15; k++) {
+		for (int k = 0; k < 16; k++) {
 			ffreq1 = (baseFreq * octave);
 			if (ffreq1 > sampleRate/2) {
 				println("----->>>-------->>>>> end of scale test at Nyquist Limit <<<<<--------<<<-----");
@@ -941,7 +957,55 @@ public class GlitchSort extends PApplet {
 		fileBaseName = oldFileBaseName;
 	}
 
+	// test with sampleRate = 65536, for frequencies from 2048Hz to 8192Hz, by 1/64 semitone
+	// output file to selected folder: open a file in the folder
+	// set FFT, use "+" key to trigger (see commandSequence() method)
+	public void scaleTest3() {
+		sampleRate = 65536;       // 256 * 256
+		initFFT();
+		String oldFileBaseName = fileBaseName;
+		// set 2-bit color quantization
+		setColorQuantize(2);
+		cpm.getControl().getController("setColorQuantize").setBroadcast(false);
+		cpm.getControl().getController("setColorQuantize").setValue(colorQuantize);
+		cpm.getControl().getController("setColorQuantize").setBroadcast(true);
+		famp1 = 3.0f;
+		famp2 = 3.0f;
+		famp3 = 3.0f;
+		float startFreq = 7168.5f - 128;
+		float endFreq = startFreq + 256;
+		int startIndex = statFFT.freqToIndex(startFreq);
+		int endIndex = statFFT.freqToIndex(endFreq);
+		isHilbertScan = true;
+		for (int k = startIndex; k <= endIndex; k += (int) Math.floor (random(32))) {
+			int ndx = k + (int) Math.floor (random(16));
+			float f1 = statFFT.indexToFreq(ndx); 
+			if (f1 > sampleRate/2) {
+				println("----->>>-------->>>>> end of scale test at Nyquist Limit <<<<<--------<<<-----");
+				break;
+			}
+			float f2 = f1 + 0.5f;
+			float f3 = f1 - 0.5f;
+			ffreq1 = f1;
+			ffreq2 = f2;
+			ffreq3 = f3;
+			theFormant = new Formant(f1, f2, f3, ""+ ndx, commaTwoPlaces.format(f1)); 
+			for (int i = 0; i < 8; i++) {
+				formantFFT(theFormant);
+			}
+			fileBaseName = "skippy_i"+ ndx +"_"+ commaTwoPlaces.format(f1);
+				// fileBaseName = "rgbformant_"+ theFormant.symbol +"_"+ noPlaces.format(theFormant.freq1);
+				// exec("s");
+				// exec("9p9p99p9999p99999999p(p((p");
+				println("------ fileBaseName = "+ fileBaseName);
+				exec("sR");
+				println(">>>>> fileBaseName = "+ fileBaseName);
+			}
+		fileBaseName = oldFileBaseName;
+	}
 
+
+	
 	public void shiftTest() {
 		// String oldFileBaseName = fileBaseName;
 		for (int k = 0; k < 1024; k++) {
@@ -1258,7 +1322,12 @@ public class GlitchSort extends PApplet {
 		else if (ch == 'S') {
 			// timestamp = getTimestamp();
 			// File temp = new File(projPath +"/"+ getNewBaseName() +"_"+ timestamp);
-			saveFileAs();
+			if (audioIsRunning) {
+				saveAudio();
+			}
+			else {
+				saveFileAs();				
+			}
 		}
 		else if (ch == '=') {
 			int n = (compOrderIndex + 1) % CompOrder.values().length;
@@ -2015,6 +2084,30 @@ public class GlitchSort extends PApplet {
 		}
 		img.updatePixels();
 		fitPixels(isFitToScreen, false);
+	}
+     
+
+	/**
+	 * parameterless method that ControlP5 button in FFT tab calls
+	 * desaturates color using a standard formula, better results than setting saturation to 0
+	 */
+	public void randomBands() {
+		float[] bins = cpm.getEqualizerValues();
+		boolean shiftDown = cpm.getControl().isShiftDown();
+		if (!shiftDown) {
+			for (int i = 1; i < bins.length - 1; i++) {
+				bins[i] = (float) (Math.random() * 1.0 - 0.5);
+			}
+		}
+		else {
+			// println("-------- Perlin randomBands --------");
+			float noiseShift = random(0,100) + (float) ((randutil.gauss() * 0.1));
+			float noiseScale = random(0.05f, 0.25f);
+			for (int i = 1; i < bins.length; i++) {
+				bins[i] = (float) (noise((i + noiseShift) * noiseScale) * 1.0 - 0.5);
+			}
+		}
+		setEqBins(bins);
 	}
      
 
@@ -3552,6 +3645,29 @@ public class GlitchSort extends PApplet {
 		selectOutput("New file (base name + timestamp):", "outputSelected", selectedFile);
 	}
 	
+	// 
+	public void saveAudio() {
+		println("---- calling saveAudio() ----");
+		// 	
+		if (null == recorder) {
+			recorder = minim.createRecorder(out, "myrecording.wav");	
+			recorder.beginRecord();
+			println("---- begin recording. Press S again to stop and save. ----");
+		}
+		else {
+			if (recorder.isRecording()) {
+				recorder.endRecord();
+				recording = recorder.save();
+				println("---- end recording. Press S again to record. ----");
+			}
+			else {
+				recorder = minim.createRecorder(out, "myrecording.wav");	
+				recorder.beginRecord();
+				println("---- begin recording. Press S again to stop and save. ----");
+			}
+		}
+	}
+	
 	/**
 	 * Callback method for selectOutput(), saves selectedFile to a location chosen by the user, 
 	 * sets default path for output to directory where file is saved. The name of the file will 
@@ -4196,11 +4312,14 @@ public class GlitchSort extends PApplet {
     // in the second part of the formant menu
     // float ffreq1 = 1033.0f;
      // float ffreq1 = (1.1484375f * 10);    // 1.1484375 = 44100 divided by (800 * 48)
-      float ffreq1 = 55.00f;
+      float ffreq1 = 34.0f;                 // A440 in whatever our sampleRate is
+      // 7169.0f / 16; for patterns     // 23 * 512.0f + 0.25f;
 //    float ffreq2 = 5147.0f; 
 //    float ffreq3 = 5347.0f;
-float ffreq2 = ffreq1 * (float) Math.pow(2, 5/12.0); //  perfect fourth
-float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
+//      float ffreq2 = ffreq1 * (float) Math.pow(2, 5/12.0); //  perfect fourth
+//      float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
+      float ffreq2 = 55.0f; // (float) Math.pow(2, 6/1200.0); //  6 cents
+      float ffreq3 = 89.0f; // (float) Math.pow(2, 12/1200.0); // 12 cents
 //     float ffreq2 = ffreq1 * (float) (5.0/4.0);			// M3 in just intonation
 //     float ffreq3 = ffreq1 * (float) (4.0/3.0); 			// P5 in just intonation;
 //    float ffreq2 = ffreq1 * (float) Math.pow(2, 6/12.0); //  tritone;
@@ -4258,7 +4377,8 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
 			nb.setValue(ffreq1);
 			nb.setBroadcast(true);
 		}
-
+    
+ 
 		public void setFfreq2(float ffreq2) {
 			this.ffreq2 = ffreq2;
 			theFormant.freq2 = ffreq2;
@@ -4289,6 +4409,69 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
 			nb.setBroadcast(true);
 		}
 
+		public void stepFfreq1() {
+			this.ffreq1 = ffreq1;
+			theFormant.freq1 = ffreq1;
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq1");			
+			boolean shiftDown = cpm.getControl().isShiftDown();
+			int ndx = this.statFFT.freqToIndex(ffreq1);
+			if (!shiftDown) {
+				ffreq1 = statFFT.indexToFreq(ndx + 1);
+			}
+			else {
+				ffreq1 = statFFT.indexToFreq(ndx - 1);
+			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq1);
+			nb.setBroadcast(true);
+			theFormant.freq1 = ffreq1;
+			println("----- stepFfreq1 ----- "+ ffreq1);
+		}
+		
+		public void stepFfreq2() {
+			this.ffreq2 = ffreq2;
+			theFormant.freq2 = ffreq2;
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq2");			
+			boolean shiftDown = cpm.getControl().isShiftDown();
+			int ndx = this.statFFT.freqToIndex(ffreq2);
+			if (!shiftDown) {
+				ffreq2 = statFFT.indexToFreq(ndx + 1);
+			}
+			else {
+				ffreq2 = statFFT.indexToFreq(ndx - 1);				
+			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq2);
+			nb.setBroadcast(true);
+			theFormant.freq2 = ffreq2;
+			println("----- stepFfreq2 ----- "+ ffreq2);
+		}
+		
+		public void stepFfreq3() {
+			this.ffreq3 = ffreq3;
+			theFormant.freq3 = ffreq3;
+			Numberbox nb = (Numberbox) cpm.getControl().getController("setFfreq3");			 
+			boolean shiftDown = cpm.getControl().isShiftDown();
+			int ndx = this.statFFT.freqToIndex(ffreq3);
+			if (!shiftDown) {
+				ffreq3 = statFFT.indexToFreq(ndx + 1);
+			}
+			else {
+				ffreq3 = statFFT.indexToFreq(ndx - 1);
+			}
+			nb.setBroadcast(false);
+			nb.setValue(ffreq3);
+			nb.setBroadcast(true);
+			theFormant.freq3 = ffreq3;
+			println("----- stepFfreq3 ----- "+ ffreq3);
+		}
+		
+		public void stepAll() {
+			stepFfreq1();
+			stepFfreq2();
+			stepFfreq3();
+		}
+		
 		public void setFamp1(float famp1) {
 			this.famp1 = famp1;
 			cpm.getControl().getController("setFamp1");
@@ -4367,8 +4550,16 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
      * L but 640 1190 2390
      * r bird 490 1350 1690
      * aw bought 570 840 2410
+     * o coat 490 910 2450
+     * A cake 390 2300 (2500-3380)
      *   
      */
+		/*
+		 * only the first two formants figure in many analyses of vowel sounds
+		 * they correspond, roughly, to tongue position: the closer F1 and F2 are to each other,
+		 * the further back the tongue. The more front the vowel, the higher  F2. F3 tends to vary less. 
+		 * supplement: cake: 390 2300 (2500-3380)
+		 */
     public class Formant {
      	public float freq1;
      	public float freq2;
@@ -4387,9 +4578,14 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	
     }
     
-    public Formant[] formantList = new Formant[24];
+    public Formant[] formantList = new Formant[25];
     public int formantIndex = 0;
     public void loadFormantList() {
+    	loadFibonacci();
+     	loadFormantOctave();
+    }
+    
+    public void loadVowels() {
     	formantList[0] = new Formant(270, 2290, 3010, "i", "beet"); 
     	formantList[1] = new Formant(390, 1990, 2550, "I", "bit");
     	formantList[2] = new Formant(530, 1840, 2480, "e", "bet");
@@ -4398,10 +4594,26 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	formantList[5] = new Formant(440, 1020, 2240, "U", "book");
     	formantList[6] = new Formant(300, 870, 2240, "u", "boot");
     	formantList[7] = new Formant(640, 1190, 2390, "L", "but");
-    	formantList[8] = new Formant(490, 1350, 1690, "r", "bird");
+    	formantList[8] = new Formant(490, 1350, 1690, "r", "bird");		
     	formantList[9] = new Formant(570, 840, 2410, "aw", "bought");
      	formantList[10] = new Formant(490, 910, 2450, "o", "coat");
-     	loadFormantOctave();
+     	formantList[11] = new Formant(390, 2300, 2640, "A", "cake");
+    }
+    
+    
+    public void loadFibonacci() {
+    	formantList[0] = new Formant(1, 2, 3, "f0", "fib"); 
+    	formantList[1] = new Formant(2, 3, 5, "f1", "fib");
+    	formantList[2] = new Formant(3, 5, 8, "f2", "fib");
+    	formantList[3] = new Formant(5, 8, 13, "f3", "fib");
+    	formantList[4] = new Formant(13, 21, 34, "f4", "fib");
+    	formantList[5] = new Formant(21, 34, 55, "f5", "fib");
+    	formantList[6] = new Formant(34, 55, 89, "f6", "fib");
+    	formantList[7] = new Formant(55, 89, 144, "f7", "fib");
+    	formantList[8] = new Formant(89, 144, 233, "f8", "fib");
+    	formantList[9] = new Formant(144, 233, 377, "f9", "fib");
+     	formantList[10] = new Formant(377, 610, 987, "f10", "fib");
+     	formantList[11] = new Formant(610, 987, 1597, "f11", "fib");
     }
     
     public void loadFormantOctave() {
@@ -4421,29 +4633,31 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	f0 = Math.round(f1 * fac);
     	f2 = Math.round(f1 * (fac + 1));
     	//formantList[10] = new Formant(f0/x0, f1/x0, f2/x0, "x0", "--synth--");
-     	formantList[10] = new Formant(490, 910, 2450, "o", "coat");
-    	formantList[11] = new Formant(f0/x1, f1/x1, f2/x1, "x1", "--synth--");
-     	formantList[12] = new Formant(f0/x2, f1/x2, f2/x2, "x2", "--synth--");
-     	formantList[13] = new Formant(f0/x3, f1/x3, f2/x3, "x3", "--synth--");
-     	formantList[14] = new Formant(f0/x4, f1/x4, f2/x4, "x4", "--synth--");
-     	formantList[15] = new Formant(f0/x5, f1/x5, f2/x5, "x5", "--synth--");
-     	formantList[16] = new Formant(f0/x6, f1/x6, f2/x6, "x6", "--synth--");
-     	formantList[17] = new Formant(f0/x7, f1/x7, f2/x7, "x7", "--synth--");
-     	formantList[18] = new Formant(f0/x8, f1/x8, f2/x8, "x8", "--synth--");
-     	formantList[19] = new Formant(f0/x9, f1/x9, f2/x9, "x9", "--synth--");
-     	formantList[20] = new Formant(233, 377, 610, "x10", "--synth--");
-     	formantList[21] = new Formant(199, 322, 521, "x11", "--synth--");
-     	formantList[22] = new Formant(144, 233, 377, "x11", "--synth--");
+     	formantList[11] = new Formant(490, 910, 2450, "o", "coat");
+    	formantList[12] = new Formant(f0/x1, f1/x1, f2/x1, "x1", "--synth--");
+     	formantList[13] = new Formant(f0/x2, f1/x2, f2/x2, "x2", "--synth--");
+     	formantList[14] = new Formant(f0/x3, f1/x3, f2/x3, "x3", "--synth--");
+     	formantList[15] = new Formant(f0/x4, f1/x4, f2/x4, "x4", "--synth--");
+     	formantList[16] = new Formant(f0/x5, f1/x5, f2/x5, "x5", "--synth--");
+     	formantList[17] = new Formant(f0/x6, f1/x6, f2/x6, "x6", "--synth--");
+     	formantList[18] = new Formant(f0/x7, f1/x7, f2/x7, "x7", "--synth--");
+     	formantList[19] = new Formant(f0/x8, f1/x8, f2/x8, "x8", "--synth--");
+     	formantList[20] = new Formant(f0/x9, f1/x9, f2/x9, "x9", "--synth--");
+     	formantList[21] = new Formant(233, 377, 610, "x10", "--synth--");
+     	formantList[22] = new Formant(199, 322, 521, "x11", "--synth--");
+     	formantList[23] = new Formant(144, 233, 377, "x11", "--synth--");
      	*/
     	// chromatic scale
     	float fac = (float) Math.pow(2, 1/12.0); // one semitone
-    	// println("------------->>>>>> semitone fac = "+ fac);
+    	// fac = (float) Math.pow(2, 1/(12.0 * 8)); // one 1/8 semitone
+    	println("------------->>>>>> semitone fac = "+ fac);
     	float f0 = ffreq1;
     	float f1 = ffreq2;
     	float f2 = ffreq3;
     	println("-------------formant scale base:", f0, f1, f2);
     	int count = 0;
-    	for (int i = 11; i < formantList.length; i++) {
+    	// fac = (float) Math.pow(2, 1/48.0); // one quarter semitone
+    	for (int i = 12; i < formantList.length; i++) {
     		formantList[i] = new Formant(f0, f1, f2, "x"+count, "--scale--");
     		f0 *= fac;
     		f1 *= fac;
@@ -4457,16 +4671,16 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	int f0 = 440;
     	int f1 = Math.round(f0 + f0 * fac);
     	int f2 = Math.round(f1 + f1 * fac);
-    	formantList[10] = new Formant(f0 * x0, f1 * x0, f2 * x0, "x0", "--synth--");
-     	formantList[11] = new Formant(f0 * x1, f1 * x1, f2 * x1, "x1", "--synth--");
-     	formantList[12] = new Formant(f0 * x2, f1 * x2, f2 * x2, "x2", "--synth--");
-     	formantList[13] = new Formant(f0 * x3, f1 * x3, f2 * x3, "x3", "--synth--");
-     	formantList[14] = new Formant(f0 * x4, f1 * x4, f2 * x4, "x4", "--synth--");
-     	formantList[15] = new Formant(f0 * x5, f1 * x5, f2 * x5, "x5", "--synth--");
-     	formantList[16] = new Formant(f0 * x6, f1 * x6, f2 * x6, "x6", "--synth--");
-     	formantList[17] = new Formant(f0 * x7, f1 * x7, f2 * x7, "x7", "--synth--");
-     	formantList[18] = new Formant(f0 * x8, f1 * x8, f2 * x8, "x8", "--synth--");
-     	formantList[19] = new Formant(f0 * x9, f1 * x9, f2 * x9, "x9", "--synth--");
+    	formantList[10+2] = new Formant(f0 * x0, f1 * x0, f2 * x0, "x0", "--synth--");
+     	formantList[11+2] = new Formant(f0 * x1, f1 * x1, f2 * x1, "x1", "--synth--");
+     	formantList[12+2] = new Formant(f0 * x2, f1 * x2, f2 * x2, "x2", "--synth--");
+     	formantList[13+2] = new Formant(f0 * x3, f1 * x3, f2 * x3, "x3", "--synth--");
+     	formantList[14+2] = new Formant(f0 * x4, f1 * x4, f2 * x4, "x4", "--synth--");
+     	formantList[15+2] = new Formant(f0 * x5, f1 * x5, f2 * x5, "x5", "--synth--");
+     	formantList[16+2] = new Formant(f0 * x6, f1 * x6, f2 * x6, "x6", "--synth--");
+     	formantList[17+2] = new Formant(f0 * x7, f1 * x7, f2 * x7, "x7", "--synth--");
+     	formantList[18+2] = new Formant(f0 * x8, f1 * x8, f2 * x8, "x8", "--synth--");
+     	formantList[19+2] = new Formant(f0 * x9, f1 * x9, f2 * x9, "x9", "--synth--");
      	*/    	
     }
     
@@ -4478,7 +4692,7 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     		freqs = new float[3];
     		freqs[0] = ffreq1;
     		freqs[1] = ffreq2;
-    		freqs[2] = ffreq3;
+    		freqs[2] = ffreq3;	
     	}
     	boolean hasNextPerm = Permutator.nextPerm(threePerm);
     	if (!hasNextPerm) {
@@ -5324,14 +5538,14 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     public void audify() {
     	println("----audify ON");
     	if (null == glitchSignal) {
-    		glitchSignal = new GlitchSignal();
+    		glitchSignal = new GlitchSignal(this.statFFTBlockWidth);
     		int edgeSize = glitchSignal.getBlockEdgeSize();
     		int powTwo = (int) (Math.log(edgeSize)/Math.log(2));
     		println("audify ---- powTwo", powTwo);
     		setFFTBlockWidth(powTwo);
     		println("audify ------");
     		out = minim2().getLineOut(Minim.STEREO, edgeSize * edgeSize);
-    		out.addSignal(glitchSignal);
+    		out.addSignal(glitchSignal);	
     	}
     	else {
     		glitchSignal.setIsUpdate(true);
@@ -5350,6 +5564,23 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     		audioIsRunning = false;
     	}
     }
+    
+    /**
+     * dummy function for control panel widgets
+     */
+    public void whoCalled() {
+    	ControllerInterface ci = cpm.getControl().getMouseOverList().listIterator().next();
+    	if (null != ci) println("---- "+ ci.getName() +" ----");
+    }
+    
+    public void setGlitchSignal() {
+    	
+    }
+    
+    public void moose() {
+    	whoCalled();
+    }
+
     
     Minim minim2() {
     	if (null == minim2) {
@@ -5449,13 +5680,38 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	int xinc = 0;
     	int yinc = 0;
     	char cmd = '0';
-    	HammingWindow hamming;
-    	boolean isUseHamming = true;
+    		HammingWindow hamming;
+    	boolean isUseHamming = false;
     	float[] hammingValues;
 
     	public GlitchSignal() {
     		//        		zz = new Zigzagger(blockEdgeSize);
     		/* */
+    		setupBuffer();
+    		/* */
+    		hamming = new HammingWindow();
+    		int len = blockEdgeSize * blockEdgeSize;
+    		hammingValues = new float[len];
+    		for (int i = 0; i < len; i++) {
+    			hammingValues[i] = hammingValue(len, i);
+    		}
+    	}
+    	
+    	public GlitchSignal(int edgeSize) {
+    		//        		zz = new Zigzagger(blockEdgeSize);
+    		/* */
+    		this.blockEdgeSize = edgeSize;
+    		setupBuffer();
+    		/* */
+    		hamming = new HammingWindow();
+    		int len = blockEdgeSize * blockEdgeSize;
+    		hammingValues = new float[len];
+    		for (int i = 0; i < len; i++) {
+    			hammingValues[i] = hammingValue(len, i);
+    		}
+    	}
+
+    	private void setupBuffer() {
     		if (isHilbertScan) {
     			int depth = (int) (Math.log(blockEdgeSize)/Math.log(2));
     			zz = new HilbertScanner(depth);
@@ -5465,13 +5721,6 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     			zz = new Zigzagger(blockEdgeSize);
     			println("audio Zigzag order = "+ blockEdgeSize);
     		}
-    		/* */
-       		hamming = new HammingWindow();
-       		int len = blockEdgeSize * blockEdgeSize;
-       		hammingValues = new float[len];
-       		for (int i = 0; i < len; i++) {
-    				hammingValues[i] = hammingValue(len, i);
-    			}
     	}
     	
     	public PixelScannerINF getZz() {
@@ -5494,6 +5743,10 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     	
     	public int getBlockEdgeSize() {
     		return this.blockEdgeSize;
+    	}
+    	public void setBlockEdgeSize(int newBlockEdgeSize) {
+    		this.blockEdgeSize = newBlockEdgeSize;
+    		this.setupBuffer();
     	}
 
     	public void generate(float[] samp) {
@@ -5607,7 +5860,7 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     				// smooth buffer with a hamming function
     				// samp[i] = buf[i] * hammingValue(buf.length, i);
     				samp[i] = buf[i] * hammingValues[i];
-    			}
+     			}
     		}
     		else {
     			for (int i = 0; i < buf.length; i++) {
@@ -5677,11 +5930,11 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     		if (isHilbertScan) {
     			int depth = (int) (Math.log(blockEdgeSize)/Math.log(2));
     			zz = new HilbertScanner(depth);
-    			//println("audio Hilbert depth = "+ depth);
+    			// println("audio Hilbert depth = "+ depth);
     		}
     		else {
     			zz = new Zigzagger(blockEdgeSize);
-    			//println("audio Zigzag order = "+ blockEdgeSize);
+    			// println("audio Zigzag order = "+ blockEdgeSize);
     		}
     		/* */
     		img.loadPixels();
@@ -5695,7 +5948,7 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     			}
     			fftStatGlitch(pix, ChannelNames.L);
     			if (statBufferSize != this.blockEdgeSize) {
-    				//setFFTBlockWidth((int) Math.sqrt(this.blockEdgeSize));
+    				// setFFTBlockWidth((int) Math.sqrt(this.blockEdgeSize));
     			}
     			cmd = c; 
     		}
@@ -5739,6 +5992,13 @@ float ffreq3 = ffreq1 * (float) Math.pow(2, 10/12.0); // minor seventh
     		}
     		else if ('H' == c) {
     			isUseHamming = !isUseHamming;
+    			if (isUseHamming) {
+    				println("---- Hamming window ----");
+    			}
+    			else {
+     				println("---- Box window ----");
+    			}
+
     		}
     		else {
     			// do nothing

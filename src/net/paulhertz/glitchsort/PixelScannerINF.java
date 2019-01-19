@@ -2,6 +2,13 @@ package net.paulhertz.glitchsort;
 
 import static net.paulhertz.glitchsort.GlitchConstants.*;
 
+/**
+ * Interface for classes that scan the screen coordinates of an array of pixels 
+ * in orders other than the usual left to right, to p to bottom x,y scanlines.
+ * Typically I use the scans to create one-dimensional arrays that are 
+ * processed (perhaps as audio signals) and written back to the screen. 
+ *
+ */
 public interface PixelScannerINF {
 	
 	abstract void flipX();

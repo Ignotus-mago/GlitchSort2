@@ -93,6 +93,7 @@ import ddf.minim.*;
 import controlP5.*;
 import controlP5.Controller;
 import net.paulhertz.aifile.*;
+import net.paulhertz.geom.GeomUtils;
 import net.paulhertz.util.*;
 // static import statement (Java 1.5) allows us to use unqualified constant names
 import static net.paulhertz.glitchsort.GlitchConstants.*;
@@ -331,8 +332,8 @@ public class GlitchSort extends PApplet {
 	// TODO implement separate FFTBuffer for eqch operation
 	// right now we use statBufferSize for all fft buffer sizes
 	int eqBufferSize;
-  float sampleRate = 44100.0f;
-	// float sampleRate = 65536; 				// (256 * 256); // 65536
+  // float sampleRate = 44100.0f;
+	float sampleRate = 65536; 				// (256 * 256); // 65536
 	public int eqH = 100;
 	public float eqMax = 1;
 	public float eqMin = -1;
@@ -439,6 +440,7 @@ public class GlitchSort extends PApplet {
 		println("Screen: "+ displayWidth +", "+ displayHeight);		
 		// println("Display: "+ displayWidth +", "+ displayHeight);
 		size(640, 480);
+		frameRate(24);
 		// we generally don't want to smooth. We want nearest neighbor scaling.
 		// Unfortunately, Processing only seems to apply noSmooth to shapes, not to images.
 		noSmooth();
@@ -1154,6 +1156,77 @@ public class GlitchSort extends PApplet {
 			exec(cmd);
 		}
 	}
+	
+	/**
+	 * Demo method of a brief animation output as PNG files 
+	 */
+	public void hilbanim() {
+		int blockSize = 256;
+		if (width != 1024 && height != 1024) {
+			println("---- hilbanim only works for 1024 x 1024 pixel images ----");
+			return;
+		}
+		int lim = (width * width) / blockSize;
+		isHilbertScan = true;
+		int order = width;
+		int depth = (int) (Math.log(order)/Math.log(2));
+		PixelScannerINF zz = new HilbertScanner(depth);
+		int zflag = 0;
+		// lim = 1024;
+		println("---- Hilbert animation for blocksize "+ blockSize +" with "+ lim +" frames ----");		
+		int[] pix = zz.pluck(img.pixels, img.width, img.height, 0, 0);
+		for (int i = 0; i < lim; i++) {
+			// store the previous frame in oldPix
+			int[] oldPix = Arrays.copyOf(pix, pix.length);
+			int[] blendPix = new int[pix.length];
+			zflag = trailingZeros(i);
+			rotateLeft(pix, blockSize);
+			int blendSteps = 0;
+			int[] blendStepList = {16, 32, 64, 64, 128, 128};
+			if (zflag >= blendStepList.length) {
+				blendSteps = blendStepList[blendStepList.length - 1];
+			}
+			else {
+				blendSteps = blendStepList[zflag];
+			}
+			for(int blend = 1; blend < blendSteps; blend++) {
+				float tween = (blend * 1.0f) / blendSteps;
+				// int alpha = (int) (255.0f * tween);
+				for (int j = 0; j < blendPix.length; j++) {
+					// call our own tweening function
+					blendPix[j] = tweenColor(oldPix[j], pix[j], tween);
+					// this should work, but there's some color weirdness
+					// blendPix[j] = lerpColor(oldPix[j], pix[j], tween);
+				}
+				zz.plant(img.pixels, blendPix, img.width, img.height, 0, 0);
+				img.updatePixels();
+				fitPixels(isFitToScreen, false);
+			}
+			// TODO blend and export sequence
+			zz.plant(img.pixels, pix, img.width, img.height, 0, 0);
+			img.updatePixels();
+			fitPixels(isFitToScreen, false);
+			
+			// .... 
+			// exec("s");
+		}
+	}
+	
+	
+	/**
+	 * @param test   value to test
+	 * @return       number of trailing zeros in binary representation of test, 
+	 *               2^(number of trailing zeros) is the largest power of 2 factor of the test number
+	 */
+	public int trailingZeros(int test) {
+		int trailing = 0;
+		while ((test > 0) && ((1 & test) == 0)) {
+			trailing++;
+			test = test >> 1;
+		}
+		return trailing;
+	}
+
 
 	
 	boolean isShiftKeyDown = false;
@@ -1504,7 +1577,9 @@ public class GlitchSort extends PApplet {
 			getColors();
 		}
 		else if (ch == '\"') {
-			initPanelSettings(true);
+			println("----- Hilbert animation -----");
+			hilbanim();
+			// initPanelSettings(true);
 			// shiftTest();
 		}
 		else if (ch == '\'') {
@@ -1778,9 +1853,9 @@ public class GlitchSort extends PApplet {
 	}
 	
 	/**
-	 * Copy an image pixel by pixel, test code to work around problems in Processing 2.1 with PImage.get.
+	 * Set alpha channel pixel by pixel, test code to work around problems in Processing 2.1 with PImage.get.
 	 * @param image   image to copy
-	 * @return        the image submitted with apha channel set to desired value
+	 * @return        the image submitted with alpha channel set to desired value
 	 */
 	public PImage loadImageAlpha(PImage image, int alpha) {
 		int i = 0;
@@ -1792,6 +1867,41 @@ public class GlitchSort extends PApplet {
 		image.updatePixels();
 		return image;
 	}
+	
+	/**
+	 * Set alpha channel pixel by pixel, test code to work around problems in Processing 2.1 with PImage.get.
+	 * @param image   image to copy
+	 * @return        copy of the image submitted with alpha channel set to desired value
+	 */
+	public PImage loadNewImageAlpha(PImage image, int alpha) {
+		int i = 0;
+		image.loadPixels();
+		PImage newImage = createImage(width, height, RGB);
+		newImage.loadPixels();
+		for (i = 0; i < image.pixels.length; i++) {
+			int[] rgb = rgbComponents(image.pixels[i]);
+			newImage.pixels[i] = alpha << 24 | rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+		}
+		newImage.updatePixels();
+		return newImage;
+	}
+	
+	/**
+	 * Set alpha channel pixel by pixel, test code to work around problems in Processing 2.1 with PImage.get.
+	 * @param pix     array of RGB pixel values
+	 * @return        copy of the array submitted with alpha channel set to desired value
+	 */
+	public int[] loadArrayAlpha(int[] pix, int alpha) {
+		int i = 0;
+		for (i = 0; i < pix.length; i++) {
+			int[] rgb = rgbComponents(pix[i]);
+			pix[i] = alpha << 24 | rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+		}
+		return pix;
+	}
+
+	
+
 	
 	/**
 	 * tranlates the display image by a specified horizontal and vertical distances
@@ -3451,11 +3561,34 @@ public class GlitchSort extends PApplet {
 		return Math.max(Math.max(rDiff, gDiff), bDiff);
 	}
 	
+	/**
+	 * Returns the mean value of two colors. Alpha channel is set to 255.
+	 * @param argb1   first color
+	 * @param argb2   second color
+	 * @return        mean value of the two colors as an int
+	 */
 	public static int meanColor(int argb1, int argb2) {
 		int[] comp1 = GlitchSort.rgbComponents(argb1);
 		int[] comp2 = GlitchSort.rgbComponents(argb2);
 		for (int i = 0; i < comp1.length; i++) {
 			comp1[i] = (int) ((comp1[i] + comp2[i]) * 0.5f);
+		}
+		return GlitchSort.composeColor(comp1);
+	}
+	
+	/**
+	 * Returns the linear interpolation of two colors. Alpha channel is set to 255.
+	 * @param argb1    first color
+	 * @param argb2    second color
+	 * @param tween    distance to interpolate between first color and second color, clamped to the interval [1, 0]
+	 * @return         linearly interpolated value argb1 * (1 - tween) + argb2 * tween, calculated on RBG components
+	 */
+	public static int tweenColor(int argb1, int argb2, float tween) {
+		tween = (tween > 1) ? 1 : (tween < 0) ? 0 : tween;
+		int[] comp1 = GlitchSort.rgbComponents(argb1);
+		int[] comp2 = GlitchSort.rgbComponents(argb2);
+		for (int i = 0; i < comp1.length; i++) {
+			comp1[i] = (int) ((comp1[i] * (1 - tween)  + comp2[i] * tween));
 		}
 		return GlitchSort.composeColor(comp1);
 	}

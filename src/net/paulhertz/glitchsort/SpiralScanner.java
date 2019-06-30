@@ -8,12 +8,12 @@ import processing.core.*;
 import net.paulhertz.aifile.*;
 
 /**
- * Implement Hilbert curve scanning of a square block of pixels with an edge dimension set by the user.
- * Hilbert scanning provides a high degree of local coherence. Edge dimension must be a power of 2.
+ * Implements spiral scanning of a square block of pixels with a variable edge dimension set by the user.
+ * Spiral scan proceeds from upper left corner inwards.
  * Provides methods for reading (pluck) and writing (plant) from an array of pixels.
  *
  */
-class HilbertScanner implements PixelScannerINF {
+class SpiralScanner implements PixelScannerINF {
 	/** x coordinates */
 	private int[] xcoords;
 	/** y coordinates */
@@ -33,7 +33,7 @@ class HilbertScanner implements PixelScannerINF {
 	/**
 	 * @param depth   the depth of recursion that determines the number of pixels on an edge of the scan block
 	 */
-	public HilbertScanner(int depth) {
+	public SpiralScanner(int depth) {
 		this.depth = depth;
 		d = (int) Math.round(Math.pow(2, depth));
 		generateCoords();
@@ -135,9 +135,7 @@ class HilbertScanner implements PixelScannerINF {
 		int[] out = new int[len];
 		for (int i = 0; i < len; i++) {
 			int p = (y + ycoords[i]) * w + (x) + xcoords[i];
-			if (verbose) {
-				PApplet.println("x = "+ x +", y = "+ y +", i = "+ i +", p = "+ p +", hilbert = ("+ xcoords[i] +", "+ ycoords[i] +")");
-			}
+			if (verbose) PApplet.println("x = "+ x +", y = "+ y +", i = "+ i +", p = "+ p +", zigzag = ("+ xcoords[i] +", "+ ycoords[i] +")");
 			out[i] = pix[p];
 		}
 		return out;

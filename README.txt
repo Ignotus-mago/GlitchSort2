@@ -15,4 +15,7 @@ You will need to include the following Processing 2.0 libraries in your Eclipse 
 
 Your pathnames are probably going to be somewhat different. 
 
+sun.applet.AppletViewer is no longer part of the Java environment beyond compiler 1.8 and JRE 8 (1.8.0_141), 
+so you are advised to use that environment for compiling and running. Yup, this is archaic code 
+
 See http://paulhertz.net/factory/2012/08/glitchsort2/ for Processing code and binaries, user manual and details.

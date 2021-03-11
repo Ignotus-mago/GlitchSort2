@@ -654,6 +654,8 @@ public class GlitchSort extends PApplet {
 		println("press '\' to turn audify off");
 		println("press '_' to turn 90 degrees and execute last command, four times");
 		println("press ')' to run scaled low pass filter");
+		println("press ';' to shift eQ bins left");
+		println("press ':' to shift eQ bins right");
 		println("press 'v' to turn verbose output on and off");
 		println("press 'h' to show help message");
 	}
@@ -1343,7 +1345,7 @@ public class GlitchSort extends PApplet {
 			printFileInfo();
 		}
 		else if (ch == '&') {
-			stepFile();															// step to the next file in the selected folder
+			stepFile();								 // step to the next file in the selected folder
 		}
 		else if (ch == '*') {
 			chooseFolder();                          // choose folder for importing files on command

@@ -1396,7 +1396,7 @@ public class GlitchSort extends PApplet {
 		}
 		else if (ch == 'S') {
 			// timestamp = getTimestamp();
-			// File temp = new File(projPath +"/"+ getNewBaseName() +"_"+ timestamp);
+			// File temp = new File(projPath +File.pathSeparato+ getNewBaseName() +"_"+ timestamp);
 			if (audioIsRunning) {
 				saveAudio();
 			}
@@ -3610,7 +3610,7 @@ public class GlitchSort extends PApplet {
 	public void setNewFileState(File selectedFile) {
 		displayFile = selectedFile;
 		String path = selectedFile.getAbsolutePath();
-		filePath = path.substring(0, path.lastIndexOf("/")) +"/";
+		filePath = path.substring(0, path.lastIndexOf(File.separator)) +File.separator;
 		fileBaseName = getNewBaseName(selectedFile);
 		printFileInfo();
 	}
@@ -3680,7 +3680,7 @@ public class GlitchSort extends PApplet {
 	public String getNewBaseName(File selectedFile) {
 		String path = selectedFile.getAbsolutePath();
 		// get the short file name minus its extension 
-		String newName = path.substring(path.lastIndexOf("/") + 1, path.length()).split("\\.")[0];
+		String newName = path.substring(path.lastIndexOf(File.separator) + 1, path.length()).split("\\.")[0];
 		Pattern p = Pattern.compile("\\s");
 		Matcher m = p.matcher(newName);
 		// remove all spaces
@@ -3759,7 +3759,7 @@ public class GlitchSort extends PApplet {
 	 */
 	public void saveFileAs() {
 		if (null == fileBaseName) fileBaseName = "untitled";
-		if (null == filePath) filePath = sketchPath +"/";
+		if (null == filePath) filePath = sketchPath +File.separator;
 		if (null == displayFile) {
 			String fName = filePath + fileBaseName +"_"+ timestamp;
 			saveFileAs(new File(fName));
@@ -3846,7 +3846,7 @@ public class GlitchSort extends PApplet {
 		if (null != selectedFile) {
 			noLoop();
 			String path = selectedFile.getAbsolutePath();
-			String folderPath = path.substring(0, path.lastIndexOf("/")) +"/";
+			String folderPath = path.substring(0, path.lastIndexOf(File.separator)) +File.separator;
 			this.getAllFiles(new File(folderPath));
 			loop();
 		}
@@ -3962,7 +3962,7 @@ public class GlitchSort extends PApplet {
 			String[] parts = shortName.split("\\.");
 			// String fName = parts[0] +"_q"+ Math.round(quality * 100) +".jpg";
 			// just save one degrade file per image
-			String fName = projPath +"/"+ parts[0] +"_degrade" +".jpg";
+			String fName = projPath +File.separator+ parts[0] +"_degrade" +".jpg";
 			File temp = new File(savePath(fName));
 			FileImageOutputStream output = new FileImageOutputStream(temp);
 			writer.setOutput(output);
@@ -3984,7 +3984,7 @@ public class GlitchSort extends PApplet {
 	public void saveToAI() {
 		String aiFilename = fileBaseName +"_"+ timestamp +"_"+ fileCount +".ai";
 	  println("saving Adobe Illustrator file " + aiFilename + "...");
-	  String path = (null == filePath) ? projPath +"/" : filePath;
+	  String path = (null == filePath) ? projPath +File.separator : filePath;
 	  PrintWriter output = createWriter(path + aiFilename);
 	  DocumentComponent doc = new DocumentComponent("GlitchSort Export");
 	  // get its palette
@@ -4026,7 +4026,7 @@ public class GlitchSort extends PApplet {
 	public void getColors() {
 		String aiFilename = fileBaseName +"_"+ timestamp +"_"+ fileCount +".ai";
 		println("saving Adobe Illustrator file " + aiFilename + "...");
-		String path = (null == filePath) ? projPath +"/" : filePath;
+		String path = (null == filePath) ? projPath +File.separator : filePath;
 		PrintWriter output = createWriter(path + aiFilename);
 		DocumentComponent doc = new DocumentComponent("GlitchSort Export");
 		// get its palette

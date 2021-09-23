@@ -4,16 +4,22 @@ import static net.paulhertz.glitchsort.GlitchConstants.*;
 
 /**
  * Interface for classes that scan the screen coordinates of an array of pixels 
- * in orders other than the usual left to right, to p to bottom x,y scanlines.
+ * in orders other than the usual left to right, top to bottom x,y scanlines.
  * Typically I use the scans to create one-dimensional arrays that are 
  * processed (perhaps as audio signals) and written back to the screen. 
  *
  */
 public interface PixelScannerINF {
 	
+	/** flip the order of the x coordinates */
 	abstract void flipX();
 	
+	/** flip the order of the y coordinates */
 	abstract void flipY();
+	
+	/** swap the x and y coordinates in the map */
+	abstract void swapXY();
+	
 	
 	/**
 	 * @param pix   an array of pixels
@@ -35,11 +41,26 @@ public interface PixelScannerINF {
 	 */
 	abstract void plant(int[] pix, int[] sprout, int w, int h, int x, int y);
 	
+	/** return a string representation of our data, possibly partial */
 	abstract String toString();
-	
+	  
+	/** return a number representing recursion depth. If not applicable, return -1 */
 	abstract int getDepth();
-	
-	abstract int getBlockWidth();
+	  
+	/** return the width of the pixel array mapped in this PixelScannerINF instance */
+	abstract int getBlockWidth();  
+	  
+	/** return the number of pixel values mapped in this PixelScannerINF instance */
+	abstract int getSize();
+  
+	/** return the index of a point in the mapped representation */ 
+	abstract int lookup(int x, int y);
+  
+	/** return the x coordinate at a specified index in the map */
+	abstract int xcoord(int pos);
+  
+	/** return the y coordinate at a specified index in the map */
+	abstract int ycoord(int pos);
 	
 	/*
 	 * 

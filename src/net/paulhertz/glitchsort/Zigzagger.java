@@ -179,7 +179,7 @@ class Zigzagger implements PixelScannerINF {
 	
 	/** return the number of pixel values mapped in this PixelScannerINF instance */
 	public int getSize() {
-		return n;
+		return indexMap.length;
 	}
   
 	/** return the index of a point in the mapped representation */ 

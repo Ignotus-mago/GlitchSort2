@@ -207,7 +207,7 @@ class HilbertScanner implements PixelScannerINF {
 	  }
 
 	  public int getSize() {
-	    return d * d;
+	    return indexMap.length;
 	  }
 
 	  public boolean isVerbose() {

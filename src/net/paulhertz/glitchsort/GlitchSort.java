@@ -375,6 +375,8 @@ public class GlitchSort extends PApplet {
 	float cut = 0.5f, defaultCut = cut;
 	public boolean isCutLinkedToBoost = false;
 	float[] audioBuf;
+	// TODO
+	
 
 	// -------- Audio -------- //
 	char lastCommand;
@@ -495,7 +497,7 @@ public class GlitchSort extends PApplet {
 	 */
 	public void stop() {
 		minim.stop();
-		minim2.stop();
+		if (null != minim2) minim2.stop();
 		super.stop();
 	}
 	
@@ -1296,7 +1298,17 @@ public class GlitchSort extends PApplet {
 	}
 
 	public void parseKey(char key, int keyCode) {
-		if (key == '_') {
+		if (key == '|') {
+			if (isFubar) {
+				setFFTBlockWidth(6);
+				setIsHilbertScan(true, false);
+				println(">>>>> fubar <<<<<");
+			}
+			else {
+				println("??????? not fubar ?????");
+			}
+	    }
+		else if (key == '_') {
 			commandSequence(lastCommand);
 		}
 		else if (key == '+') {
@@ -4716,7 +4728,7 @@ public class GlitchSort extends PApplet {
     public Formant[] formantList = new Formant[25];
     public int formantIndex = 0;
     public void loadFormantList() {
-    	loadFibonacci();
+    	loadVowels();
      	loadFormantOctave();
     }
     
@@ -5679,7 +5691,7 @@ public class GlitchSort extends PApplet {
     		println("audify ---- powTwo", powTwo);
     		setFFTBlockWidth(powTwo);
     		println("audify ------");
-    		out = minim2().getLineOut(Minim.STEREO, edgeSize * edgeSize);
+    		out = minim2().getLineOut(Minim.STEREO, edgeSize * edgeSize, 22050.0f);
     		out.addSignal(glitchSignal);	
     	}
     	else {
@@ -5793,7 +5805,9 @@ public class GlitchSort extends PApplet {
   		this.isPipeToOSC = isPipeToOSC;
   	}
 
-    /**
+	// tracker code for fubar
+	boolean isFubar = true;
+   /**
      * @author paulhz
      * a class that implements an AudioSignal interface, used by Minim library to produce sound.
      */
@@ -5815,9 +5829,15 @@ public class GlitchSort extends PApplet {
     	int xinc = 0;
     	int yinc = 0;
     	char cmd = '0';
-    		HammingWindow hamming;
-    	boolean isUseHamming = false;
+    	HammingWindow hamming;
+    	boolean isUseHamming = true;
     	float[] hammingValues;
+    	HilbertScanner hilbTracker = new HilbertScanner(3);
+    	int blockW = 64; int blockH = 64;
+    	int blockX = 0; int blockY = 0;
+    	boolean isShowBlock = false;
+    	int scannerIndex = 0;
+    	int trackerIndex = 0;
 
     	public GlitchSignal() {
     		//        		zz = new Zigzagger(blockEdgeSize);
@@ -5934,26 +5954,36 @@ public class GlitchSort extends PApplet {
     			yinc = 0;
     		}
     		else if (isAutoPilot) {
-    			// running on autopilot
-    			if (xinc == 0) xinc = blockEdgeSize;
-    			int temp = mapX + xinc;
-    			if ((temp < ow) || (temp > w - blockEdgeSize)) {
-    				xinc = -xinc;
-    				temp = mapX;
-    				yinc = blockEdgeSize;
+    			// running on autopilot &&&&&
+    			if (isFubar) {
+    				if (trackerIndex >= hilbTracker.getSize()) trackerIndex = 0;
+    				blockX = hilbTracker.xcoord(trackerIndex) * blockW;
+    				blockY = hilbTracker.ycoord(trackerIndex) * blockH;
+    				trackerIndex++;
+    				mx = blockX;
+    				my = blockY;
     			}
-    			mx = temp;
-    			temp = mapY + yinc;
-    			if (temp < oh) {
-    				temp = h - blockEdgeSize;
+    			else {
+	    			if (xinc == 0) xinc = blockEdgeSize;
+	    			int temp = mapX + xinc;
+	    			if ((temp < ow) || (temp > w - blockEdgeSize)) {
+	    				xinc = -xinc;
+	    				temp = mapX;
+	    				yinc = blockEdgeSize;
+	    			}
+	    			mx = temp;
+	    			temp = mapY + yinc;
+	    			if (temp < oh) {
+	    				temp = h - blockEdgeSize;
+	    			}
+	    			else if (temp > h - blockEdgeSize) {
+	    				temp = oh;
+	    			}
+	    			my = temp;
+	    			// audio scanning seems to happen faster than screen refresh
+	    			// println("mx", mx, "my", my);
+	    			yinc = 0; 
     			}
-    			else if (temp > h - blockEdgeSize) {
-    				temp = oh;
-    			}
-    			my = temp;
-    			// audio scanning seems to happen faster than screen refresh
-    			// println("mx", mx, "my", my);
-    			yinc = 0; 
     		}
     		else {
 

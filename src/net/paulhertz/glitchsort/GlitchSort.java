@@ -2740,7 +2740,7 @@ public class GlitchSort extends PApplet {
 				}
 				else {
 					// image is proportionally equal to or wider than the display window, 
-					// so scale image width to fit the windwo width
+					// so scale image width to fit the window width
 					scaledWidth = maxWindowWidth;
 					// and scale image height by window width divided by image width
 					scaledHeight = Math.round(fitImg.height * (maxWindowWidth / (float)fitImg.width));

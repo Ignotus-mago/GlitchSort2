@@ -4683,7 +4683,7 @@ public class GlitchSort extends PApplet {
 			setFfreq3(f.freq3);
 		}
 
- 		/*
+ 	/*
      * some useful information
      * 
      * FORMANTS
@@ -5832,7 +5832,7 @@ public class GlitchSort extends PApplet {
     	HammingWindow hamming;
     	boolean isUseHamming = true;
     	float[] hammingValues;
-    	HilbertScanner hilbTracker = new HilbertScanner(3);
+    	HilbertScanner hilbTracker = new HilbertScanner(4);
     	int blockW = 64; int blockH = 64;
     	int blockX = 0; int blockY = 0;
     	boolean isShowBlock = false;

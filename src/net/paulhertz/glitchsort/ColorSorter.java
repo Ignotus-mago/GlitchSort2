@@ -24,7 +24,7 @@ public interface ColorSorter extends Sorter {
 	/**
 	 * @return the isSwapChannels
 	 */
-	public boolean isSwapChanels();
+	public boolean isSwapChannels();
 
 	/**
 	 * @param isSwapChannels the isSwapChannels to set

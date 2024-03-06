@@ -361,7 +361,7 @@ public abstract class AbstractColorSorter implements ColorSorter {
 	/**
 	 * @return the isSwapChannels
 	 */
-	public boolean isSwapChanels() {
+	public boolean isSwapChannels() {
 		return isSwapChannels;
 	}
 

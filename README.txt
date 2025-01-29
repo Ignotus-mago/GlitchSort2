@@ -19,4 +19,5 @@ sun.applet.AppletViewer is no longer part of the Java environment beyond compile
 so you are advised to use that environment for compiling and running. Yup, this is archaic code 
 
 See https://github.com/Ignotus-mago/GlitchSort2/releases/tag/v01b10 for Processing code and binaries, user manual and details.
+
 Note that GlitchSort is provided AS IS with NO SUPPORT. I stopped developing it in 2013 and am not going back. 
